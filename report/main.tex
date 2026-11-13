@@ -1,0 +1,286 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows.meta,positioning,fit}
+\usepackage[hidelinks]{hyperref}
+
+\newcommand{\eg}{e.g.}
+\newcommand{\Rmat}{\mathbb{R}}
+\newcommand{\TABLEPLACEHOLDER}{[scenario metrics table inserted here]}
+\newcommand{\PLACEHOLDERDISCUSSION}{[discussion to be completed]}
+\newcommand{\PLACEHOLDERCONCLUSION}{[conclusions to be completed]}
+
+\begin{document}
+
+\title{Trajectory Tracking of a Quadrotor in Wind:\\ LQR Control and Kalman-Filter Navigation with RTK GNSS}
+
+\author{\IEEEauthorblockN{Team: [Member 1, ID]\quad [Member 2, ID]\quad [Member 3, ID]}
+\IEEEauthorblockA{Aerial Robotics (MSc), Project 2026\\ Prof.~C.~Silvestre}}
+
+\maketitle
+
+\begin{abstract}
+This paper presents the complete position and attitude control of a quadrotor performing an
+inspection mission---take-off, two laps of a figure-eight at constant altitude and
+landing---in the presence of a constant wind with random gusts, using only a low-cost sensor
+suite: an attitude and heading reference system (AHRS) with rate gyros at 200~Hz and an
+RTK GNSS receiver at 50~Hz. A single multivariable linear quadratic regulator (LQR) with
+integral action is designed on the 15-state linearisation of the full rigid-body dynamics
+about hover; the torque part of the controller output is mapped to body torques through the
+exact Euler-angle kinematics $Q(\phi,\theta)$. Navigation is provided by a nine-state
+continuous-time steady-state Kalman filter that estimates position, velocity and an unknown
+disturbance acceleration from the commanded thrust, the measured attitude and the GNSS
+position fixes, with two steady-state gains selected according to the reported RTK fix
+status. The closed loop is evaluated with ideal and estimated states in four scenarios
+(nominal, wind plus gusts, 5~s RTK outage, model uncertainty). With estimated states the
+mission is tracked with [X.XX]~m RMS 3-D error in wind; the integral action removes the
+hover offset and the disturbance estimate recovers the mean wind drag. Consistency of the
+filter is validated with $\pm3\sigma$ bounds and the normalized estimation error squared.
+\end{abstract}
+
+\section{Introduction}
+% ~0.4 col: context, contributions list, paper structure, notation
+The project concerns the full position and attitude control of a quadrotor that must follow a
+three-dimensional reference trajectory in wind using only measurements from a realistic,
+low-cost sensor suite. All computations are carried out in continuous time in
+MATLAB/Simulink; each sensor is modelled as the true signal plus white noise of spectral
+density $r=\sigma^2\Delta t$.
+
+\emph{Notation:} $\{\mathrm{I}\}$ is the inertial North-East-Down frame and $\{\mathrm{B}\}$
+the body frame; $\mathbf{e}_3=[0,0,1]^\top$; $S(\omega)$ is the skew-symmetric matrix such
+that $S(\omega)x=\omega\times x$. The vehicle parameters are $m=1.2$~kg,
+$J=\mathrm{diag}(15,15,26)\times10^{-3}$~kg\,m$^2$, $g=9.81$~m/s$^2$, thrust
+$0\le T\le24$~N, torques $|n_{x,y}|\le0.5$, $|n_z|\le0.1$~N~m, and linear drag coefficient
+$k_d=0.25$~N\,s/m. Tilt is limited to $35^\circ$.
+
+\section{Problem Statement}
+\subsection{Vehicle model}
+The quadrotor is described by the nonlinear rigid-body model
+\begin{equation}
+m\ddot p = -T R\mathbf{e}_3 + m g\,\mathbf{e}_3 + f_w,\qquad
+\dot R = R\,S(\omega),\qquad
+J\dot\omega = -S(\omega)J\omega + n,
+\label{eq:model}
+\end{equation}
+where $p$ is the position in $\{\mathrm{I}\}$, $R\in SO(3)$ rotates $\{\mathrm{B}\}$ to
+$\{\mathrm{I}\}$, $T$ is the total thrust acting along $-R\mathbf{e}_3$, and $n$ is the
+rotor torque vector. The wind force is the linear drag
+$f_w=-k_d(\dot p - v_w)$, with wind velocity $v_w$ consisting of a constant component of
+2~m/s along the inertial $x$-axis starting at $t=15$~s and gusts obtained by passing unit
+white noise through a first-order filter with time constant $\tau=2$~s and standard
+deviation $\sigma=1$~m/s per axis.
+
+\subsection{Attitude kinematics and the matrix $Q(\phi,\theta)$}
+The roll--pitch--yaw angles $\eta=(\phi,\theta,\psi)$ (ZYX convention) satisfy
+$\dot\eta = Q(\phi,\theta)\,\omega$ with
+\begin{equation}
+Q(\phi,\theta)=
+\begin{bmatrix}
+1 & \sin\phi\tan\theta & \cos\phi\tan\theta\\
+0 & \cos\phi & -\sin\phi\\
+0 & \sin\phi/\cos\theta & \cos\phi/\cos\theta
+\end{bmatrix},
+\label{eq:Q}
+\end{equation}
+which equals $I$ at hover and is singular only at $\theta=\pm90^\circ$. Given commanded
+Euler accelerations $\ddot\eta_{\mathrm{cmd}}$, the exact inverse kinematics together with
+\eqref{eq:model} yield the torque
+\begin{equation}
+n = J\,Q^{-1}\big(\ddot\eta_{\mathrm{cmd}}-\dot Q\,\omega\big) + \omega\times J\omega,
+\label{eq:torque}
+\end{equation}
+so that $\ddot\eta=\ddot\eta_{\mathrm{cmd}}$ holds exactly at any admissible attitude.
+
+\subsection{Mission and reference trajectory}
+The vehicle starts at rest at $p=0$ and must (i) climb to $z^\ast=-2$~m in 5~s and hover
+3~s, (ii) fly two laps of the lemniscate
+$x^\ast=a\sin\Omega t$, $y^\ast=a\sin(\Omega t)\cos(\Omega t)$ with $a=3$~m and period
+$2\pi/\Omega=20$~s, (iii) return to the origin, hover 3~s and land. The heading reference
+$\psi^\ast=\operatorname{atan2}(\dot y^\ast,\dot x^\ast)$ keeps the body $x$-axis tangent to
+the path. Because the lemniscate is entered with non-zero velocity, every join between the
+hover segments and the eight is blended with a quintic smoothstep
+$w(s)=6s^5-15s^4+10s^3$ over a 3~s window, applied to position and heading alike:
+$\ p^\ast=(1-w)\,p_A+w\,p_B$ with derivatives
+$\ \dot p^\ast=\dot p_A+w(\dot p_B-\dot p_A)+\dot w\,(p_B-p_A)$ and
+$\ \ddot p^\ast=\ddot p_A+w(\ddot p_B-\ddot p_A)+2\dot w(\dot p_B-\dot p_A)+\ddot w\,(p_B-p_A)$.
+The result is a $C^2$ reference $(p^\ast,\dot p^\ast,\ddot p^\ast,\psi^\ast)$ whose
+feed-forward acceleration is used by the controller.
+
+\subsection{Linearised model and controllability}
+With the position error in the heading frame, $e=R_\psi^\top(p-p^\ast)$, and
+$\tilde\eta=\eta-\eta_{ff}$, the model \eqref{eq:model} linearised about hover for the input
+$u=[\delta T,\ n^\top]^\top$ is $\dot x=Ax+Bu$ with the 15-state chain structure
+\begin{equation}
+x=\begin{bmatrix}\textstyle\int e\\ e\\ \dot e\\ \tilde\eta\\ \dot{\tilde\eta}\end{bmatrix},
+\quad
+A=\begin{bmatrix}
+0&I&0&0&0\\
+0&0&I&0&0\\
+0&0&0&G&0\\
+0&0&0&0&I\\
+0&0&0&0&0
+\end{bmatrix}\!\!,
+\quad
+B=\begin{bmatrix}
+0&0\\ 0&0\\ -\mathbf{e}_3/m&0\\ 0&0\\ 0&J^{-1}
+\end{bmatrix}\!\!,
+\label{eq:linA}
+\end{equation}
+with $G=g\,[\,0\ {-1}\ 0;\ 1\ 0\ 0;\ 0\ 0\ 0\,]$ the hover Jacobian
+$\partial\ddot p/\partial\eta$. The wind drag is deliberately excluded from
+\eqref{eq:linA}: it is an unknown disturbance, captured by the estimator of
+Section~\ref{sec:est}. A numerical Jacobian of the nonlinear error dynamics matches
+\eqref{eq:linA} to $5\times10^{-12}$ relative error. The controllability matrix
+$\mathcal{C}=[B\ AB\ \cdots\ A^{14}B]$ has rank 15 (12 without the integral states), and a
+permutation of the states reveals four decoupled chains---$x$-pitch (5), $y$-roll (5),
+$z$-thrust (3) and yaw (2)---each of which is controllable.
+
+\section{Controller Design}
+\subsection{LQR with integral action}
+One multivariable LQR is designed for \eqref{eq:linA}: with Bryson weights
+$Q=\mathrm{diag}(x_{\max}^{-2})$ for
+$x_{\max}=[0.5\ \mathbf{1}_3,\ 1\,\mathbf{1}_3,\ 1\,\mathbf{1}_3,\ 20^\circ\,\mathbf{1}_3,\ 1\,\mathbf{1}_3]$
+and $R=\rho\,\mathrm{diag}(\delta T_{\max}^{-2},\,n_{\max}^{-2})$, the algebraic Riccati
+equation gives $K=R^{-1}B^\top P\in\Rmat^{4\times15}$ and $u=-Kx$. Three weightings
+$\rho\in\{0.1,1,10\}$ were evaluated: as $\rho$ decreases the closed-loop eigenvalues of
+$A-BK$ move to higher bandwidth and the RMS tracking error falls at the price of control
+effort (\figurename~\ref{fig:lqr}); $\rho=1$ was selected for the flight tests. The gain $K$
+has the chain-decoupled zero pattern of Section~II-D: $\delta T$ is driven only by the
+$z$-chain, $n_x$ by the $y$-roll chain and $n_y$ by the $x$-pitch chain, $n_z$ by the yaw
+chain. Step responses to a 1~m position error give rise times of [X.X]~s,
+overshoot of [XX]\,\% and settling in [X.X]~s (z-axis, $\rho=1$).
+
+The integral of the heading-frame error removes any constant disturbance: with $A-BK$
+Hurwitz and $\dot x(\infty)=0$, the integral states satisfy
+$\frac{d}{dt}\int e=e(\infty)=0$, hence $e(\infty)=0$ for any constant $\delta$. Conditional
+integration (anti-windup) freezes $\int e$ while an actuator is saturated.
+
+\subsection{Feed-forward and torque mapping}
+The commanded Euler accelerations are
+$\ddot\eta_{\mathrm{cmd}}=[0,0,\ddot\psi^\ast]^\top+J^{-1}u_{2:4}$, mapped to torque by the
+exact kinematics \eqref{eq:torque}; the thrust is
+$T=T_{ff}+\delta T$ with $T_{ff}=m\,\lVert\ddot p^\ast-g\mathbf{e}_3\rVert$ and the
+feed-forward attitude $\eta_{ff}$ obtained by inverting the thrust direction along the
+reference acceleration with the reference heading. The benefit of the exact
+$Q(\phi,\theta)$ over the small-angle approximation $Q\approx I$ is shown in
+\figurename~\ref{fig:q}: during the figure-eight the heading sweeps $45^\circ\!\to\!-90^\circ$
+while roll and pitch are active, and the approximation introduces a coupling transient of
+[X.XX]~m in the position error.
+
+\begin{figure}[t]
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tikzpicture}[node distance=4mm, >=Latex, box/.style={draw, minimum height=8mm, align=center, font=\small}, sum/.style={draw, circle, inner sep=1pt, font=\small}]
+\node[box] (ref) {reference\\ $p^\ast,\dot p^\ast,\ddot p^\ast,\psi^\ast$};
+\node[box, right=of ref] (err) {error\\ states $x$};
+\node[box, right=of err] (lqr) {LQR\\ $u=-Kx$};
+\node[box, right=of lqr] (tq) {torque map\\ \eqref{eq:torque}};
+\node[box, right=of tq] (veh) {quadrotor\\ \eqref{eq:model}};
+\node[box, below=8mm of lqr] (aw) {anti-windup\\ $\int e$};
+\draw[->] (err) -- (lqr); \draw[->] (lqr) -- (tq); \draw[->] (tq) -- (veh);
+\draw[->] (veh) -- node[above, font=\small]{$p,\dot p,\eta,\omega$} ++(1.8,0) |- (err.west);
+\draw[->] (ref) -- (err);
+\end{tikzpicture}}
+\caption{LQR with integral action and exact torque mapping.}
+\label{fig:lqrblock}
+\end{figure}
+
+\section{Estimator Design}
+\label{sec:est}
+\subsection{Filter model}
+The translational dynamics are written $\ddot p = u_a + d$ with the model acceleration
+$u_a=-\frac{T_{\mathrm{cmd}}}{m}R(\eta_{\mathrm{meas}})\mathbf{e}_3+g\mathbf{e}_3$
+computed from the commanded thrust and the AHRS attitude, and $d$ an unknown disturbance
+acceleration (wind drag, mass and thrust errors) modelled as a random walk:
+\begin{equation}
+x=\begin{bmatrix}p\\ v\\ d\end{bmatrix}\in\Rmat^9,\quad
+A=\begin{bmatrix}0&I&0\\0&0&I\\0&0&0\end{bmatrix}\!\!,\quad
+B=\begin{bmatrix}0\\I\\0\end{bmatrix}\!\!,\quad
+C=[I\ 0\ 0].
+\end{equation}
+The process-noise intensity is $Q_9=\mathrm{diag}(0,\ q_a^2I,\ q_d^2I)$ and the measurement
+noise intensity $R=\mathrm{diag}(r_h,r_h,r_v)$ with $r=\sigma^2\Delta t$
+($\sigma=2$~cm horizontal, 4~cm vertical at 50~Hz). The pair $(A,C)$ is observable with
+position measurements ($\mathrm{rank}[C;CA;CA^2]=9$, $A^3=0$); with a velocity-only
+measurement the rank is 6---position is not observable, which is the reason navigation must
+rely on the GNSS fixes.
+
+\subsection{Steady-state gain and fix-status switching}
+The continuous-time steady-state Kalman gain $L=P_{ss}C^\top R^{-1}$ follows from the
+filter Riccati equation $AP+PA^\top+Q_9-PC^\top R^{-1}CP=0$, computed once per accuracy
+mode; the receiver reports whether the RTK fix is valid and the filter switches between the
+RTK gain ($\sigma=2/4$~cm) and the degraded gain ($\sigma=0.5/1.0$~m) accordingly. With
+$[q_a,q_d]=[X,X]$, the estimation-error poles of $A-LC$ lie between [X.XX] and [X.XX]~rad/s.
+The tuning was validated on the wind scenario: the estimation errors stay within the
+$\pm3\sigma$ bounds ([XX]\,\% coverage), the normalized estimation error squared (NEES)
+averages [X.X] against the theoretical 9, and the innovations are zero-mean.
+
+\begin{figure}[t]
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tikzpicture}[node distance=4mm, >=Latex, box/.style={draw, minimum height=8mm, align=center, font=\small}]
+\node[box] (ref) {reference};
+\node[box, right=of ref] (kf) {Kalman\\ filter $\hat p,\hat v,\hat d$};
+\node[box, right=of kf] (ctl) {LQR};
+\node[box, right=of ctl] (tq) {torque map};
+\node[box, right=of tq] (veh) {quadrotor};
+\node[box, below=7mm of kf] (sns) {AHRS 200 Hz, gyros 200 Hz,\\ RTK GNSS 50 Hz};
+\draw[->] (ref) -- node[above,font=\footnotesize]{$p^\ast,\dot p^\ast,\ddot p^\ast,\psi^\ast$} (ctl);
+\draw[->] (kf) -- node[above,font=\footnotesize]{$\hat p,\hat v$} (ctl);
+\draw[->] (ctl) -- node[above,font=\footnotesize]{$T,\ddot\eta_{\mathrm{cmd}}$} (tq);
+\draw[->] (tq) -- node[above,font=\footnotesize]{$T,n$} (veh);
+\draw[->] (veh.south) |- node[font=\footnotesize]{$p,\eta,\omega$} (sns.east);
+\draw[->] (sns.west) -| node[font=\footnotesize]{$\eta_{m},\omega_m$} (kf.south);
+\draw[->] (sns.north) -- node[right,font=\footnotesize]{$p_{\mathrm{meas}}$} (kf.south east);
+\draw[->] (ctl.south) |- node[font=\footnotesize]{$T_{\mathrm{cmd}}$} (kf.west);
+\end{tikzpicture}}
+\caption{Controller--estimator loop (output feedback).}
+\label{fig:loopblock}
+\end{figure}
+
+\section{Simulation Setup and Results}
+All simulations run in Simulink at a fixed step of 1~ms (ode4). The nonlinear plant, the
+sensor models and the controller--estimator loop are implemented as Level-2 MATLAB
+S-functions; a single script reproduces every figure and table of this paper.
+
+\subsection{Scenarios}
+The mission was flown (i) nominal, (ii) with constant wind plus gusts from $t=15$~s,
+(iii) with the RTK fix lost for 5~s during the figure-eight ($t\in[20,25]$~s, receiver at
+standard GNSS accuracy), and (iv) with model uncertainty (mass $+20\%$, inertia $+20\%$,
+20~ms input delay), each with ideal and estimated states.
+\TABLEPLACEHOLDER%
+
+\subsection{Discussion}
+% filled after runs: integral action, covariance growth, separation principle, bonus
+\PLACEHOLDERDISCUSSION%
+
+\subsection{Bonus}
+\emph{Wind feed-forward:} feeding $\hat d$ into the commanded acceleration gives
+[X.XX]~m RMS versus [X.XX]~m for pure integral action.
+\emph{Complete GNSS loss:} with all fixes removed for 1~s / 5~s the model-based prediction
+drifts [X.XX] / [X.XX]~m; bridging longer outages would require a velocity-grade sensor
+(\eg optical flow plus a barometer or a second GNSS constellation with inertial
+dead-reckoning).
+
+\section{Conclusions}
+% filled after runs
+\PLACEHOLDERCONCLUSION%
+
+\bibliographystyle{IEEEtran}
+\begin{thebibliography}{9}
+\bibitem{SK08} R.~C. Leishman, J.~C. Macdonald, R.~W. Beard, and T.~W. McLain,
+``Quadrotors and accelerometers: state estimation with an improved measurement model,''
+\emph{J. Guid. Control Dyn.}, vol.~31, no.~6, pp.~1586--1591, 2008.
+\bibitem{B07} P.~Bristeau \emph{et al.}, ``The role of propeller aerodynamics in the model
+of a quadrotor UAV,'' \emph{Proc. ECC}, 2009.
+\bibitem{A99} B.~D.~O. Anderson and J.~B. Moore, \emph{Optimal Control: Linear Quadratic
+Methods}. Dover, 2007.
+\bibitem{K60} R.~E. Kalman, ``A new approach to linear filtering and prediction problems,''
+\emph{J. Basic Eng.}, vol.~82, pp.~35--45, 1960.
+\bibitem{S91} M.~W. Spong, S.~Hutchinson, and M.~Vidyasagar, \emph{Robot Modeling and
+Control}. Wiley, 2006.
+\end{thebibliography}
+
+\end{document}

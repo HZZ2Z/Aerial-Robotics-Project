@@ -1,0 +1,34 @@
+# --- simulation outputs (regenerable by main.m) ---
+results/*.mat
+
+# --- LaTeX build artifacts ---
+report/*.pdf
+report/*.log
+report/*.aux
+report/*.xdv
+report/*.synctex.gz
+
+# --- local LaTeX toolchain (portable, not part of the project) ---
+tectonic/
+
+# --- MATLAB caches ---
+*.slxc
+*.asv
+*.mex*
+autosave/
+
+# --- misc ---
+_render/
+Thumbs.db
+.DS_Store
+
+# --- Simulink cache ---
+slprj/
+matlab/slprj/
+
+# --- course statements (do not redistribute) ---
+project2026*.pdf
+
+# --- session artifacts & redundant submission zip (code lives here) ---
+.zcode/
+AerialRobotics_2026_code.zip
