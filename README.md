@@ -115,7 +115,9 @@ The final estimator was found by a 20-run `autoresearch` loop on a frozen, bit-e
 deterministic benchmark (estimated-state flight, RTK lost 20–25 s, RMS 3-D error as metric):
 the 9-state random-walk disturbance model became a **12-state two-time-scale** one, the
 degraded→good gain switch got a **1.5 s soft blend**, and the process-noise intensities were
-swept to the tilt-constrained optimum.
+swept to the tilt-constrained optimum. The complete session — experiment ledger, charter and
+frozen benchmark — lives in [`docs/autoresearch/`](docs/autoresearch) (interactive snapshot:
+[autoresearch-dashboard.html](docs/autoresearch/autoresearch-dashboard.html)).
 
 <div align="center">
 <img src="docs/tuning.png" alt="autoresearch tuning curves: 20-run progression and qf sweep with tilt cliff" width="860"/>
@@ -192,7 +194,10 @@ Every design step carries a numerical self-check (`main.m` asserts them on every
 │   ├── closed_loop.slx     the complete controller–estimator loop
 │   └── plant_test.slx      open-loop plant model
 ├── report/                 IEEE-style paper sources + figures
-└── docs/                   showcase assets
+├── docs/                   showcase assets
+│   ├── tuning.png          estimator tuning curves (regenerate: make_tuning_fig.py)
+│   └── autoresearch/       20-run experiment ledger, charter, frozen benchmark, dashboard
+└── (zip regenerated from HEAD, not tracked)
 ```
 
 ## 🚀 Quick Start
