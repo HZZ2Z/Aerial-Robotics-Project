@@ -61,6 +61,6 @@ P.lqr.rhos   = [0.1 1 10];   % the three required weightings
 
 % --- Kalman filter (tunable; set in kf_design) ---
 P.kf.qa = 1.0;    % disturbance-of-acceleration intensity scale (tuned)
-P.kf.qf = 4.0;    % gust (OU) driving intensity, matched to sigma_w = kd*1/1.2 (tuned)
-P.kf.qs = 1.0;    % slow bias (random walk) intensity: mean wind drag, model error (tuned)
+P.kf.qf = 4.0;    % gust (OU) driving intensity, tau = P.wind.tau (4.0 = tilt-constrained empirical optimum; theory match was 0.2)
+P.kf.qs = 1.0;    % slow bias (random walk) intensity: mean wind drag, model error
 end
