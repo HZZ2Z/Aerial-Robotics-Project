@@ -109,6 +109,31 @@ it to 1.10 m/s².*
 the RTK outage costs 0.55 m peak tracking error and a 30° tilt transient at re-acquisition —
 still inside the 35° limit.*
 
+## 🎛 Estimator Tuning (20-run automated sweep)
+
+The final estimator was found by a 20-run `autoresearch` loop on a frozen, bit-exact
+deterministic benchmark (estimated-state flight, RTK lost 20–25 s, RMS 3-D error as metric):
+the 9-state random-walk disturbance model became a **12-state two-time-scale** one, the
+degraded→good gain switch got a **1.5 s soft blend**, and the process-noise intensities were
+swept to the tilt-constrained optimum.
+
+<div align="center">
+<img src="docs/tuning.png" alt="autoresearch tuning curves: 20-run progression and qf sweep with tilt cliff" width="860"/>
+</div>
+
+* **(a)** every experiment against the metric; keeps (green) form the monotone best line
+  0.1369 → **0.1249 m** (−8.7 %). **(b)** the gust intensity $q_f$ sweep — RMS keeps dropping
+  while tilt rises, and a sharp saturation cliff between $q_f=4$ and $5$ (tilt > 35° *and*
+  RMS worse) sets the operating point. Full results table above.
+
+| Kept change | Why it works |
+|:--|:--|
+| 12-state two-time-scale KF: gust $\hat d_f$ (OU with the wind time constant) + slow bias $\hat d_s$ (RW) | matches the true disturbance structure: mean wind is persistent, gusts decay with $\tau_w = 2$ s |
+| soft Lb→Lg gain blend at RTK re-acquisition | no estimate jump when the fix returns; the transient actually lives *inside* the outage |
+| $q_f = 4.0$ — the theory-matched value 0.2 was **not** optimal | faster gust-state tracking beats noise injection, up to the tilt cliff |
+| $q_s = 0.05$ (geometric sweep 1.0 → 0.05, converged) | with $\hat d_f$ owning the fast path, the bias state can be near-frozen |
+
+
 ## 🖼 Figure Gallery
 
 <table>
