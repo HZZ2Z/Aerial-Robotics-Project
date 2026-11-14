@@ -34,5 +34,7 @@ project2026*.pdf
 AerialRobotics_2026_code.zip
 
 # --- autoresearch session state ---
-.auto/
+# (.auto/ is excluded from experiment commits via the plugin's pathspec;
+#  ignoring .auto/ itself breaks `git add -A -- . :(exclude).auto`)
 autoresearch-dashboard.html
+.auto/bench_last.txt
