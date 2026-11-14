@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>autoresearch: rtk-outage-estimated-tracking</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff; --fg: #1f2328; --muted: #59636e;
+    --border: #d9dde1; --card-bg: #ffffff; --th-bg: #f5f6f8; --code-bg: #f0f1f3;
+    --keep: #1a7f37; --discard: #b35900; --fail: #c62828; --neutral: #6e7781;
+    --badge-keep-bg: #d4edda; --badge-discard-bg: #ffe5c2;
+    --badge-fail-bg: #f8d7da; --badge-neutral-bg: #e8eaed;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117; --fg: #e6edf3; --muted: #9198a1;
+      --border: #3d444d; --card-bg: #161b22; --th-bg: #1c2129; --code-bg: #21262d;
+      --keep: #3fb950; --discard: #d29a22; --fail: #f85149; --neutral: #9198a1;
+      --badge-keep-bg: #12261e; --badge-discard-bg: #2d230f;
+      --badge-fail-bg: #2d1416; --badge-neutral-bg: #21262d;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "PingFang SC", "Segoe UI", sans-serif; background: var(--bg); color: var(--fg); margin: 2rem auto; max-width: 900px; padding: 0 1rem; line-height: 1.5; }
+  h1 { font-size: 1.4rem; }
+  .meta { color: var(--muted); font-size: .9rem; margin-bottom: 1.5rem; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+  .card { border: 1px solid var(--border); background: var(--card-bg); border-radius: 8px; padding: .8rem 1.2rem; }
+  .card .n { font-size: 1.4rem; font-weight: 600; }
+  .trend { margin-bottom: 1.5rem; }
+  .trend svg { display: block; width: 100%; height: auto; }
+  .trend .line { fill: none; stroke: var(--muted); opacity: .55; }
+  .trend .base { stroke: var(--muted); stroke-dasharray: 5 4; }
+  .trend .gline { stroke: var(--border); }
+  .trend .c-keep { fill: var(--keep); }
+  .trend .c-discard { fill: var(--card-bg); stroke: var(--discard); stroke-width: 1.5; }
+  .trend .c-fail { fill: var(--card-bg); stroke: var(--fail); stroke-width: 1.5; }
+  .trend .c-noop { fill: var(--card-bg); stroke: var(--neutral); stroke-width: 1.5; }
+  .trend text { fill: var(--muted); font-size: 10px; }
+  .tablewrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { position: sticky; top: 0; background: var(--th-bg); color: var(--fg); }
+  .keep { color: var(--keep); }
+  .discard { color: var(--discard); }
+  .crash { color: var(--fail); }
+  .noop { color: var(--neutral); }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: .78rem; }
+  .badge.keep { background: var(--badge-keep-bg); }
+  .badge.discard { background: var(--badge-discard-bg); }
+  .badge.crash { background: var(--badge-fail-bg); }
+  .badge.noop { background: var(--badge-neutral-bg); }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-size: .85em; }
+  .desc { max-width: 340px; overflow-wrap: anywhere; }
+  .revisits { color: var(--muted); font-size: .8rem; white-space: nowrap; }
+</style>
+</head>
+<body>
+<h1>autoresearch · rtk-outage-estimated-tracking</h1>
+<div class="meta">
+  metric <code>ertk_rms</code> · direction <code>lower</code>
+   · unit <code>m</code>
+</div>
+<div class="cards">
+  <div class="card"><div class="n">20</div>experiments</div>
+  <div class="card"><div class="n">10</div>kept</div>
+  <div class="card"><div class="n">10</div>reverted</div>
+  <div class="card"><div class="n">0.1369</div>baseline</div>
+  <div class="card"><div class="n">0.1249</div>best</div>
+  <div class="card"><div class="n" style="color:var(--discard)">yellow</div>confidence 1.98</div>
+</div>
+<div class="trend"><svg viewBox="0 0 860 120" role="img" aria-label="metric trend">
+<line class="gline" x1="44" y1="92.9" x2="816" y2="92.9"/><text x="38" y="95.9" text-anchor="end">0.13</text><line class="gline" x1="44" y1="59.4" x2="816" y2="59.4"/><text x="38" y="62.4" text-anchor="end">0.14</text><line class="gline" x1="44" y1="25.9" x2="816" y2="25.9"/><text x="38" y="28.9" text-anchor="end">0.15</text>
+<polyline class="line" points="44.0,69.9 84.6,68.0 125.3,71.8 165.9,68.1 206.5,57.0 247.2,10.0 287.8,72.1 328.4,73.3 369.1,77.1 409.7,89.0 450.3,106.0 490.9,19.5 531.6,96.2 572.2,106.0 612.8,104.3 653.5,102.4 694.1,107.8 734.7,109.0 775.4,109.8 816.0,110.0"/>
+<line class="base" x1="44" y1="69.9" x2="816" y2="69.9"/><text x="816" y="65.9" text-anchor="end">baseline 0.1369</text>
+<circle class="c-noop" cx="44.0" cy="69.9" r="3.5"/><circle class="c-discard" cx="84.6" cy="68.0" r="3.5"/><circle class="c-keep" cx="125.3" cy="71.8" r="3.5"/><circle class="c-discard" cx="165.9" cy="68.1" r="3.5"/><circle class="c-discard" cx="206.5" cy="57.0" r="3.5"/><circle class="c-discard" cx="247.2" cy="10.0" r="3.5"/><circle class="c-keep" cx="287.8" cy="72.1" r="3.5"/><circle class="c-keep" cx="328.4" cy="73.3" r="3.5"/><circle class="c-keep" cx="369.1" cy="77.1" r="3.5"/><circle class="c-keep" cx="409.7" cy="89.0" r="3.5"/><circle class="c-keep" cx="450.3" cy="106.0" r="3.5"/><circle class="c-fail" cx="490.9" cy="19.5" r="3.5"/><circle class="c-fail" cx="531.6" cy="96.2" r="3.5"/><circle class="c-noop" cx="572.2" cy="106.0" r="3.5"/><circle class="c-fail" cx="612.8" cy="104.3" r="3.5"/><circle class="c-discard" cx="653.5" cy="102.4" r="3.5"/><circle class="c-keep" cx="694.1" cy="107.8" r="3.5"/><circle class="c-keep" cx="734.7" cy="109.0" r="3.5"/><circle class="c-keep" cx="775.4" cy="109.8" r="3.5"/><circle class="c-keep" cx="816.0" cy="110.0" r="3.5"/>
+</svg></div>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>#</th><th>status</th><th>metric</th><th>Δ vs baseline</th><th>commit</th><th>description</th></tr></thead>
+<tbody>
+<tr>
+  <td>20</td>
+  <td><span class="badge keep">keep</span></td>
+  <td>0.1249</td>
+  <td class="keep">▲ +0.012</td>
+  <td><code>f69450c</code></td>
+  <td class="desc">exp20 (final): kf qs 0.1 -&gt; 0.05, sweep converged (&lt;0.1% gain)</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><span class="badge keep">keep</span></td>
+  <td>0.125</td>
+  <td class="keep">▲ +0.0119</td>
+  <td><code>06afcf6</code></td>
+  <td class="desc">exp19: kf qs 0.25 -&gt; 0.1</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><span class="badge keep">keep</span></td>
+  <td>0.1252</td>
+  <td class="keep">▲ +0.0117</td>
+  <td><code>afca26e</code></td>
+  <td class="desc">exp18: kf qs 0.5 -&gt; 0.25</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><span class="badge keep">keep</span></td>
+  <td>0.1256</td>
+  <td class="keep">▲ +0.0113</td>
+  <td><code>9838571</code></td>
+  <td class="desc">exp17: kf qs 1.0 -&gt; 0.5 (smoother slow-bias state, fast path now owned by df)</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><span class="badge discard">discard</span></td>
+  <td>0.1272</td>
+  <td class="discard">▲ +0.0097</td>
+  <td>—</td>
+  <td class="desc">exp16: revisit run5 — qa 1.0 -&gt; 0.5 on top of 12-state model + qf=4.0 <span class="revisits">↻ Revisiting #5</span></td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><span class="badge crash">checks_failed</span></td>
+  <td>0.1266</td>
+  <td class="crash">▲ +0.0103</td>
+  <td>—</td>
+  <td class="desc">exp15: kf qf 4.0 -&gt; 5.0 (checks failed: tilt 39.9 deg &gt; 35)</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><span class="badge noop">no-op</span></td>
+  <td>0.1261</td>
+  <td class="noop">▲ +0.0108</td>
+  <td>—</td>
+  <td class="desc">misfire: intended qf=5.0 but sed didn&#39;t match (checks_failed auto-revert had restored qf=4.0), so this re-ran the qf=4.0 config — bit-identical duplicate of run 11 (0.126102), extra determinism confirmation</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><span class="badge crash">checks_failed</span></td>
+  <td>0.129</td>
+  <td class="crash">▲ +0.0079</td>
+  <td>—</td>
+  <td class="desc">exp13: kf qf 4.0 -&gt; 6.0 (checks failed: tilt 49.2 deg &gt; 35)</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><span class="badge crash">checks_failed</span></td>
+  <td>0.1519</td>
+  <td class="crash">▼ -0.015</td>
+  <td>—</td>
+  <td class="desc">exp12: kf qf 4.0 -&gt; 8.0 (checks failed: tilt 47.8 deg &gt; 35)</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><span class="badge keep">keep</span></td>
+  <td>0.1261</td>
+  <td class="keep">▲ +0.0108</td>
+  <td><code>24ce8b7</code></td>
+  <td class="desc">exp11: kf qf 2.0 -&gt; 4.0</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><span class="badge keep">keep</span></td>
+  <td>0.1312</td>
+  <td class="keep">▲ +0.0057</td>
+  <td><code>cbcccc5</code></td>
+  <td class="desc">exp10: kf qf 1.0 -&gt; 2.0</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><span class="badge keep">keep</span></td>
+  <td>0.1347</td>
+  <td class="keep">▲ +0.0021</td>
+  <td><code>76b26eb</code></td>
+  <td class="desc">exp9: kf qf 0.5 -&gt; 1.0</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><span class="badge keep">keep</span></td>
+  <td>0.1358</td>
+  <td class="keep">▲ +0.001</td>
+  <td><code>c78250e</code></td>
+  <td class="desc">exp8: kf qf 0.2 -&gt; 0.5 (faster gust-state tracking)</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><span class="badge keep">keep</span></td>
+  <td>0.1362</td>
+  <td class="keep">▲ +0.0007</td>
+  <td><code>df4630d</code></td>
+  <td class="desc">exp7: 12-state two-time-scale disturbance model (OU gust tau=2 + RW bias), qf=0.2 qs=1.0</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><span class="badge discard">discard</span></td>
+  <td>0.1547</td>
+  <td class="discard">▼ -0.0179</td>
+  <td>—</td>
+  <td class="desc">exp6: degraded-fix gain Lb scaled x0.5 in kf_design</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><span class="badge discard">discard</span></td>
+  <td>0.1407</td>
+  <td class="discard">▼ -0.0038</td>
+  <td>—</td>
+  <td class="desc">exp5: kf qa 1.0 -&gt; 0.5 (slower v-hat correction)</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><span class="badge discard">discard</span></td>
+  <td>0.1374</td>
+  <td class="discard">▼ -0.0005</td>
+  <td>—</td>
+  <td class="desc">exp4: qd 1.0 -&gt; 0.5 on top of kept re-acquisition ramp</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><span class="badge keep">keep</span></td>
+  <td>0.1363</td>
+  <td class="keep">▲ +0.0006</td>
+  <td><code>d6447f9</code></td>
+  <td class="desc">exp3: kf_sfun soft re-acquisition (1.5 s Lb-&gt;Lg gain ramp, extra ts state)</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><span class="badge discard">discard</span></td>
+  <td>0.1374</td>
+  <td class="discard">▼ -0.0006</td>
+  <td>—</td>
+  <td class="desc">exp2: kf qd 1.0 -&gt; 0.3 (smoother d-hat during outage)</td>
+</tr>
+<tr>
+  <td>1</td>
+  <td><span class="badge noop">no-op</span></td>
+  <td>0.1369</td>
+  <td class="noop">▼ +0</td>
+  <td>—</td>
+  <td class="desc">baseline: unmodified design (rho=1 LQR, kf qa=qd=1), run via frozen measure.sh through local Bash (see charter protocol note)</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+</body>
+</html>
