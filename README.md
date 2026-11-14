@@ -43,9 +43,11 @@ Green ellipse: 1-σ horizontal position covariance, RTK / degraded accuracy.*
   $n = JQ^{-1}(\ddot\eta_{cmd} - \dot Q\,\omega) + \omega\times J\omega$, not the
   $Q \approx I$ small-angle shortcut — a dedicated tilt-plus-90°-yaw manoeuvre shows the
   coupling error this removes.
-- **9-state steady-state Kalman filter** estimating position, velocity **and an unknown
-  disturbance acceleration $\hat d$** (wind drag, model error) — with two steady-state gains
-  switched by the receiver's RTK fix status.
+- **12-state two-time-scale Kalman filter** estimating position, velocity, a gust
+  disturbance $\hat d_f$ (Ornstein–Uhlenbeck with the wind model's time constant) **and a
+  slow bias $\hat d_s$** (mean wind drag, model error) — two steady-state gain sets
+  switched by the receiver's RTK fix status and **blended softly over 1.5 s at
+  re-acquisition** (no estimate jump when the fix returns).
 - **Honest validation, not vibes**: analytic linearisation cross-checked against a numerical
   Jacobian (5·10⁻¹²), filter consistency by NEES (9.6 vs. theory 9) and ±3σ coverage
   (99.1 %), deterministic seeded noise so every run reproduces exactly.
@@ -56,9 +58,9 @@ Green ellipse: 1-σ horizontal position covariance, RTK / degraded accuracy.*
 flowchart LR
     GEN["Reference<br/><b>C² mission trajectory</b><br/>p*, ṗ*, p̈*, ψ*"] --> CTL
 
-    subgraph EST["Steady-state Kalman filter · 9 states"]
-        KF["p̂, v̂, d̂<br/>L = Pss·CᵀR⁻¹<br/>RTK / degraded gain switching"]
-    end
+subgraph EST["Steady-state Kalman filter · 12 states"]
+    KF["p̂, v̂, d̂_f (OU, τ_w), d̂_s (bias)<br/>L = Pss·CᵀR⁻¹<br/>RTK / degraded gain switching<br/>soft 1.5 s re-acquisition blend"]
+end
 
     subgraph CTL["LQR controller · 15 states"]
         ERR["error states<br/>∫e, e, ė (heading frame)<br/>η̃, η̇̃"]
@@ -86,8 +88,9 @@ flowchart LR
 
 *The filter's model acceleration uₐ = −(T_cmd/m)·Re₃ + g·e₃ is built from the **commanded**
 thrust and the **measured** attitude; the unmodelled part (wind drag, mass error) is
-absorbed by the random-walk state d̂ — in the model-uncertainty scenario (+20 % mass,
-+20 % inertia, 20 ms delay) the filter estimates it to 1.16 m/s².*
+absorbed by the two disturbance states (gust $\hat d_f$ + bias $\hat d_s$) — in the
+model-uncertainty scenario (+20 % mass, +20 % inertia, 20 ms delay) the filter estimates
+it to 1.10 m/s².*
 
 ## 📊 Results — four scenarios × ideal / estimated states
 
@@ -97,13 +100,13 @@ absorbed by the random-walk state d̂ — in the model-uncertainty scenario (+20
 | ideal | wind + gusts | 0.063 | 0.160 | 0.034 | — | 16.1° |
 | ideal | RTK lost 5 s | 0.063 | 0.160 | 0.034 | — | 16.1° |
 | ideal | model uncertainty | 0.056 | 0.149 | 0.031 | — | 15.9° |
-| **estimated** | nominal | 0.079 | 0.182 | 0.036 | 0.022 / 0.15 / 0.23 | 17.2° |
-| **estimated** | wind + gusts | 0.079 | 0.180 | 0.035 | 0.022 / 0.15 / 0.31 | 17.6° |
-| **estimated** | RTK lost 5 s | **0.152** | **0.698** | 0.033 | 0.072 / 0.21 / 0.33 | 30.9° |
-| **estimated** | model uncertainty | 0.076 | 0.203 | 0.037 | 0.022 / 0.14 / 1.16 | 21.5° |
+| **estimated** | nominal | 0.074 | 0.180 | 0.039 | 0.022 / 0.18 / 0.47 | 18.7° |
+| **estimated** | wind + gusts | 0.074 | 0.180 | 0.039 | 0.022 / 0.18 / 0.51 | 18.7° |
+| **estimated** | RTK lost 5 s | **0.125** | **0.547** | 0.039 | 0.061 / 0.24 / 0.54 | 30.1° |
+| **estimated** | model uncertainty | 0.070 | 0.190 | 0.035 | 0.022 / 0.16 / 1.10 | 19.5° |
 
 *The integral action removes the wind-induced hover offset (0.001 m in hover with wind);
-the RTK outage costs 0.7 m peak tracking error and a 31° tilt transient at re-acquisition —
+the RTK outage costs 0.55 m peak tracking error and a 30° tilt transient at re-acquisition —
 still inside the 35° limit.*
 
 ## 🖼 Figure Gallery
@@ -136,9 +139,9 @@ Every design step carries a numerical self-check (`main.m` asserts them on every
 | Controllability rank (with / without integral states) | 15 / 12 |
 | Decoupled chains under state permutation (x-θ, y-φ, z, ψ) | 5 · 5 · 3 · 2 |
 | A − BK Hurwitz for all three ρ | ✓ |
-| (A, C) observable with position / velocity-only measurements | rank 9 / 6 |
-| NEES against steady-state covariance (theory: 9) | 9.6 |
-| ±3σ estimation-error coverage (theory: 99.7 %) | 99.1 % |
+| (A, C) observable with position / velocity-only measurements | rank 12 / 9 |
+| NEES against steady-state covariance (theory: 9) | 9.4 |
+| ±3σ estimation-error coverage (theory: 99.7 %) | 99.5 % |
 | Run-to-run determinism (seeded sensor noise) | bit-exact |
 
 ## 📁 Repository Layout
@@ -150,7 +153,7 @@ Every design step carries a numerical self-check (`main.m` asserts them on every
 │   ├── gen_ref.m           C² reference (quintic-blended segment joins)
 │   ├── lin_hover.m         15-state linearisation + rank checks
 │   ├── lqr_design.m        Bryson weights, 3× ρ, step metrics
-│   ├── kf_design.m         steady-state ARE, dual gains, observability
+│   ├── kf_design.m         steady-state ARE, 12-state two-time-scale model, dual gains
 │   ├── quad_dynamics.m     nonlinear 6-DOF model
 │   ├── *_sfun.m            plant / controller / filter / sensor S-functions
 │   ├── build_closed.m      builds simulink/closed_loop.slx programmatically
