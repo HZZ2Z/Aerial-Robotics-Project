@@ -3,44 +3,71 @@ LQR Control and Kalman-Filter Navigation with RTK GNSS
 ==========================================================================
 
 CONTENTS
-  main.m                 one-click script: builds models, designs controller
-                         and filter, runs all scenarios, regenerates every
-                         figure of the report and the 3-D animation
+  main.m                 thin public entry: main('full') reproduces every
+                         figure/table of the report and the animation;
+                         main('quick') is a ~5 min build+design sanity pass
   matlab/                design scripts and Level-2 MATLAB S-functions
-    params.m             all vehicle / sensor / wind / mission parameters
-    gen_ref.m            C^2 reference mission trajectory (quintic blending)
+    params.m             all vehicle / sensor / wind / mission / seed parameters
+    run_project.m        full orchestration (new results batch per invocation)
+    gen_ref.m            C^2 reference (mission / q_maneuver / hover_validation)
     lin_hover.m          15-state hover linearisation + self-checks
                          (numeric Jacobian, controllability rank, decoupled chains)
-    lqr_design.m         Bryson weights, LQR gains for rho = 0.1/1/10, step metrics
-    kf_design.m          9-state steady-state Kalman filter (ARE), observability
+    lqr_design.m         Bryson weights, LQR gains for rho = 0.1/1/10, recovery metrics
+    kf_design.m          steady-state ARE: rw9 course baseline + ou_bias12 extension
+    kf_sfun.m            steady-state Kalman filter S-function (fix-status gains)
+    propagate_covariance.m  model-predicted error covariance P(t) for the actual
+                         gain schedule (RK4, P(0)=0, no steady-state splicing)
     quad_dynamics.m      nonlinear 6-DOF model (NED), saturations included
     quad_sfun.m          plant S-function
     ref_sfun.m           reference generator S-function
     ctrl_sfun.m          LQR + integral action + anti-windup + exact Q(phi,theta)
                          torque mapping + optional disturbance feed-forward
-    kf_sfun.m            steady-state Kalman filter S-function (fix-status gains)
-    sensor_sfun.m        sampled sensor noise models (AHRS / gyro / GNSS)
     build_plant.m        open-loop plant test model
-    build_closed.m       closed_loop.slx (complete controller-estimator loop)
-    run_closed.m         run one scenario, collect logs
-    run_scenarios.m      the four scenarios x {ideal, estimated} + metrics table
-    metrics.m            RMS/max errors, hover offset, estimation errors, tilt, effort
-    make_figures.m       all report figures
-    animate_mission.m    3-D animation (mp4)
+    build_closed.m       closed_loop.slx (complete controller-estimator loop);
+                         sensors are continuous truth + band-limited white noise
+                         of spectral density r = sigma^2/rate on a fixed grid
+    run_closed.m         run one scenario, collect the full log contract
+                         (applied wind, ucmd, u_delayed, applied Tn, T_model,
+                          a_true/ua_ideal/ua_meas/d_model truths, P9(t))
+    run_scenarios.m      the 10 core runs -> results/<execution_id>/<case_id>/
+    metrics.m            single metric definition set (3-D vector RMS, d_model
+                         truth, segment-wise coverage / NEES / innovations)
+    make_figures.m       all report figures from ONE execution batch
+    export_results.m     metrics.json + LaTeX macros + core results table
+    animate_mission.m    3-D animation (mp4), ellipse from eig(P_xy), 1-sigma
+    sensor_sfun.m        legacy sample-and-hold sensor extension (NOT wired)
     test_plant.m         open-loop plant verification
+    test_wind.m          wind modes / OU statistics / GNSS status / delay checks
     test_closed.m        ideal-state closed-loop verification
-    test_kf.m            filter tuning sweep and consistency validation
-    test_bonus.m         Q(phi,theta) manoeuvre, feed-forward, GNSS outage
+    test_kf.m            linear statistics calibration + active-parameter sweep
+    test_bonus.m         FF sign, hover integral ablation, Q manoeuvre, GNSS loss
   simulink/
     closed_loop.slx      complete loop (built programmatically by build_closed.m)
     plant_test.slx       open-loop test model
+  results/               one directory per execution batch (never overwritten)
+  report/                IEEE paper sources, generated macros/table, figures
+  docs/optimization-plan/  audit register, phased plan, acceptance, PROGRESS.md
+  docs/autoresearch/     HISTORICAL 20-run sweep archive (pre-fix windfield,
+                         read-only - see docs/autoresearch/HISTORY.md)
+
+REQUIREMENTS
+  MATLAB R2025b (R2023b+ works), Simulink, Control System Toolbox (lqr, are).
+  Fixed-step ode4 at 1 ms; ~45 min for main('full') on a typical laptop.
 
 RUN
-  1. Open MATLAB (R2023b+ recommended), cd to this folder.
-  2. Run:  main
-     (~30 min; regenerates results/, report figures and the animation).
-  3. Individual tests: test_plant, test_closed, test_kf, test_bonus.
+  1. Open MATLAB, cd to this folder.
+  2. Run:  main('full')
+     - rebuilds both models, designs controller and filter,
+     - flies the 10-run core matrix (ideal/estimated x nominal/wind/
+       rtk_lost/uncert_Jplus/uncert_Jminus), the three-rho comparison,
+       hover integral ablation, Q manoeuvre, feed-forward and GNSS-outage
+       bonus runs, five independent holdout seeds and a 0.5 ms step check,
+     - writes results/<execution_id>/..., all report figures, metrics.json,
+       LaTeX macros/table and the animation.
+  3. Paper: compile report/main.tex (tectonic or pdflatex) - all numbers come
+     from report/metrics_macros.tex generated by the same batch.
 
 NOTE
   All simulation code runs headless (no Simulink GUI interaction needed);
-  open simulink/closed_loop.slx to inspect the wiring.
+  open simulink/closed_loop.slx to inspect the wiring. Every full run creates
+  a NEW results/<execution_id>/ batch - frozen batches are never overwritten.

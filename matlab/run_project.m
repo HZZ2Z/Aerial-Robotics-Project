@@ -18,7 +18,9 @@ build_closed(P);
 
 fprintf('== 2/6 control design ==\n');             % includes lin_hover self-checks
 [~, ~, Ks, cl] = lqr_design(P);
-K = Ks{2};                                        % rho = 1 used in the loop
+K = Ks{3};   % rho = 10: constraint-aware selection - at rho = 1 the estimated
+             % RTK-outage transient violates the 35 deg tilt limit (50.6 deg);
+             % rho = 10 keeps every core scenario inside the limit (see PROGRESS)
 
 fprintf('== 3/6 filter design ==\n');             % includes observability checks
 [~, ~, ~, ~, ~, ~, ~, mdl] = kf_design(P);
@@ -26,7 +28,17 @@ fprintf('== 3/6 filter design ==\n');             % includes observability check
 switch lower(mode)
     case 'quick'
         eid = sprintf('quick_%s', timestamp());
-        T = run_scenarios(P, K, mdl, struct('execution_id', eid));
+        % sanity: nominal ideal + wind estimated end-to-end (no figures)
+        F0 = struct('use_est', 0, 'use_Qapprox', 0, 'ff_wind', 0);
+        F1 = struct('use_est', 1, 'use_Qapprox', 0, 'ff_wind', 0);
+        run = run_closed(P, K, F0, mdl, struct('wind_mode', 'none', ...
+            'execution_id', eid, 'case_id', 'ideal_nominal'));
+        M = metrics(run, P, mdl);
+        fprintf('quick %-14s posRMS %.4f m | tilt %.1f deg\n', 'ideal_nominal', M.pos_rms, M.tilt_max*180/pi);
+        run = run_closed(P, K, F1, mdl, struct('wind_mode', 'mean_gust', ...
+            'execution_id', eid, 'case_id', 'est_wind'));
+        M = metrics(run, P, mdl);
+        fprintf('quick %-14s posRMS %.4f m | tilt %.1f deg\n', 'est_wind', M.pos_rms, M.tilt_max*180/pi);
         fprintf('QUICK DONE in %.1f min (batch %s)\n', toc(t0)/60, eid);
         return
     case 'full'
@@ -120,6 +132,5 @@ end
 
 function s = timestamp()
 n = now;
-s = sprintf('%04d%02d%02d_%02d%02d%02d', ...
-    year(n), month(n), day(n), hour(n), minute(n), second(n));
+s = sprintf('%04d%02d%02d_%02d%02d%02d', year(n), month(n), day(n), hour(n), minute(n), floor(second(n)));
 end

@@ -116,8 +116,11 @@ function m = rmfields_runtime(mdl)
 % slim copy stored inside each run (poles/eig fields are design-time only)
 keep = {'mode','nx','tau','A','B','C','Tc','Q','Rg','Rb','Lg','Lb','Pg','Pb', ...
         'blend_s','m','g','q'};
-m = orderfields(mdl, keep);  % errors if a field is missing
-m = rmfield(m, setdiff(fieldnames(m), keep));
+m = struct();
+for f = keep
+    assert(isfield(mdl, f{1}), 'kf_design output missing field %s', f{1});
+    m.(f{1}) = mdl.(f{1});
+end
 end
 
 function u = sat_input(u, Pp)

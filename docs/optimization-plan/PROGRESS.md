@@ -42,6 +42,20 @@
 - test_bonus PASS：悬停积分 on 0.0000 m vs off 0.1039 m；FF on 0.0648 vs off 0.1101 m（effort/tilt 同量级）；GNSS 1 s/5 s 漂移 0.62/3.37 m，断测后 fix=1。
 - 期间修复：build_closed 遗留 pnoise 接线、kf_design 8 输出捕获、Van Loan 块矩阵符号、off-by-one 对比窗、for k=find(col) 列迭代陷阱（metrics）。
 
+## 35° 倾角约束与飞行配置决策（P4 期间发现）
+
+- 诊断批次 full_20261119_012531（ρ=1, qa=1, qd=1）：estimated/rtk_lost 倾角峰值
+  **50.6° @ t=23.4–24.6 s**（degraded 窗口内，非重获时刻），违反课程 35° 硬限制。
+- 机理：degraded 模式速度估计噪声 ±0.4–0.9 m/s（Lb 固定增益 + ±0.5/1 m@50 Hz 测量），
+  经高带宽 LQR 放大为力矩饱和往复（±0.5 N·m 反复触界）；积分状态仅 0.44 m·s，
+  排除积分 windup 主因；ideal 同场景 16.2° 无问题。
+- 候选实验（zz_tiltfix）：ρ=10 → 41.4°（仍越界）；qd=3 → 60.3°（更差，方向反了）；
+  blend 1.5 s → 无效（峰值在窗内）；qd=0.1 → 36.6°；ρ=10+qd=0.3 → 34.4°；
+  **ρ=10+qa=0.5+qd=0.3 → 32.3°（留 2.7° 余量）✓**，posRMS 0.208 m（outage 主导）。
+- 决策：飞行配置 = ρ=10（课程三权重之一，约束感知选择）+ qa=0.5/qd=0.3（扫描平坦
+  最优内部，跟踪代价可忽略）。params.m 默认值与 run_project/test_* 的 K 选择已更新；
+  诊断批次保留为 ρ=1 基线证据，最终 full 批次以新配置重跑（新 execution_id）。
+
 ## 结果失效记录
 
 - 1d15ca7 之前的一切 README 数值、figures、NEES/覆盖率、0.125 m 调参结论：基于错误风场接线（阵风-only 进 plant、τ=0.5 s、sample-hold 传感器），全部标记历史（results/legacy_1d15ca7_windlog/），不作为新版本门槛。

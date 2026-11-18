@@ -50,8 +50,7 @@ if isfield(s, f), v = s.(f); else, v = d; end
 end
 
 function s = datestr_(n)
-s = sprintf('%04d%02d%02d_%02d%02d%02d', ...
-    year(n), month(n), day(n), hour(n), minute(n), second(n));
+s = sprintf('%04d%02d%02d_%02d%02d%02d', year(n), month(n), day(n), hour(n), minute(n), floor(second(n)));
 end
 
 function s = setdef(s, varargin)

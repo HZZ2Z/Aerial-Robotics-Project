@@ -7,6 +7,7 @@ slx  = fullfile(root, 'simulink', [mdl '.slx']);
 if bdIsLoaded(mdl), close_system(mdl, 0); end
 if exist(slx, 'file'), delete(slx); end
 new_system(mdl);
+if ~evalin('base', 'exist(''P'',''var'')'), assignin('base', 'P', P); end
 
 add_block('simulink/Sources/Constant', [mdl '/cmd'], 'Value', '[P.Ttrim; 0; 0; 0]');
 add_block('simulink/Sources/Constant', [mdl '/vw'],  'Value', '[0; 0; 0]');

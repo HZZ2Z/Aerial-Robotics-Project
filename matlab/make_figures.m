@@ -219,7 +219,8 @@ d = o.fix <= 0.5;
 if ~any(d), return; end
 edges = find([~d(1); diff(d)] | [diff(d); ~d(end)]);  % run boundaries
 for k = 1:2:numel(edges)-1
-    patch(ax, o.t(edges([k k+1]))([1 1 2 2]), [-10 -10 10 10], ...
+    tt = o.t(edges([k k+1]));
+    patch(ax, [tt(1) tt(1) tt(2) tt(2)], [-10 -10 10 10], ...
         [0.85 0.85 1], 'EdgeColor', 'none', 'FaceAlpha', 0.35);
 end
 end

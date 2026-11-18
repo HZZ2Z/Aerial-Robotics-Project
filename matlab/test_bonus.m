@@ -2,7 +2,7 @@
 % performance, complete-GNSS-loss drift, constant-wind hover integral test.
 t_all = tic;
 P = params();
-[~, ~, Ks, ~] = lqr_design(P);  K = Ks{2};
+[~, ~, Ks, ~] = lqr_design(P);  K = Ks{3};   % rho = 10 (flight config)
 [~, ~, ~, ~, ~, ~, ~, mdl] = kf_design(P);
 mdl = rmfield(mdl, setdiff(fieldnames(mdl), {'mode','nx','tau','A','B','C','Tc', ...
     'Q','Rg','Rb','Lg','Lb','Pg','Pb','blend_s','m','g','q'}));

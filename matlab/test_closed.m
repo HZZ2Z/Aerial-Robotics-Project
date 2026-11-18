@@ -3,7 +3,7 @@ t_all = tic;
 P = params();
 build_closed(P);
 [~, ~, Ks, ~] = lqr_design(P);
-K = Ks{2};                                   % rho = 1
+K = Ks{3};                                   % rho = 10 (flight config)
 [~, ~, ~, ~, ~, ~, ~, mdl] = kf_design(P);
 mdl = rmfield(mdl, setdiff(fieldnames(mdl), {'mode','nx','tau','A','B','C','Tc', ...
     'Q','Rg','Rb','Lg','Lb','Pg','Pb','blend_s','m','g','q'}));
