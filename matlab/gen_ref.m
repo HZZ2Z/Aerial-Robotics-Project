@@ -14,7 +14,7 @@ function [pref, vref, aref, psi, psid, psidd] = gen_ref(t, P)
 % dedicated combined roll-pitch-yaw manoeuvre mode (task 3 Q comparison):
 % climb 3 s, hover, simultaneous diagonal position step (0,0)->(2,2) and
 % 90 deg heading change over [5,7], hold, return over [9,11], hover, land.
-if isfield(P.mis, 'man') && P.mis.man
+if strcmp(P.mis.mode, 'q_maneuver')
     if t <= 3
         [q,qd,qdd] = q5(t/3);
         pref = [0;0;-2*q]; vref = [0;0;-2*qd/3]; aref = [0;0;-2*qdd/9];
@@ -39,6 +39,20 @@ if isfield(P.mis, 'man') && P.mis.man
         pref = [0;0;-2*(1-q)]; vref = [0;0;2*qd/2]; aref = [0;0;2*qdd/4];
         psi = 0; psid = 0; psidd = 0;
     end
+    return
+end
+
+% static hover validation (integral anti-wind test): 5 s climb to 2 m,
+% then hold position until P.mis.t_hv; mean wind steps at P.wind.t0.
+if strcmp(P.mis.mode, 'hover_validation')
+    tup = P.mis.tup;  h = P.mis.h;
+    if t <= tup
+        [q, qd, qdd] = q5(t/tup);
+        pref = [0;0;-h*q]; vref = [0;0;-h*qd/tup]; aref = [0;0;-h*qdd/tup^2];
+    else
+        pref = [0;0;-h]; vref = [0;0;0]; aref = [0;0;0];
+    end
+    psi = 0; psid = 0; psidd = 0;
     return
 end
 

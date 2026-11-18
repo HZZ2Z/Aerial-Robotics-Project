@@ -28,25 +28,28 @@ end
 end
 
 function sm = step_metrics(A, B, K, P)
-% initial condition x0 = 1 m error in each axis, simulated on the linear loop
+% initial condition x0 = 1 m error in each axis, simulated on the linear loop;
+% reported as the equivalent unit-step RECOVERY response y = 1 - e/e(0):
+% rise = 10%->90% of y, overshoot beyond y = 1 in %, settling = 2% error band
 Ac = A - B*K;
 sm = struct('t', {}, 'e', {});
 for ax = 1:3
     x0 = zeros(15,1); x0(3+ax) = 1;          % e = 1 m (x15: int(1:3), e(4:6), ed(7:9), etat(10:12), etatd(13:15))
     [y, t] = initial(ss(Ac, zeros(15,4), eye(15), zeros(15,4)), x0, 12);
     ex = y(:, 3+ax);
+    yr = 1 - ex/ex(1);                       % normalized recovery
     sm(ax).t    = t;
     sm(ax).e    = ex;
-    sm(ax).rise = rise_time(t, abs(ex));
-    sm(ax).over = max(0, -min(ex)/ex(1));
+    sm(ax).rise = rise_time(t, yr);
+    sm(ax).over = max(0, max(yr) - 1)*100;
     sm(ax).sett = settling_time(t, abs(ex));
 end
 end
 
-function tr = rise_time(t, e)
-% first time |e| falls below 10% of its initial value
-tr = interp1(flipud(e), flipud(t), 0.1*e(1));
-if isnan(tr), tr = t(end); end
+function tr = rise_time(t, yr)
+% first 10% and first 90% crossings of the recovery response
+i10 = find(yr >= 0.1, 1);  i90 = find(yr >= 0.9, 1);
+if isempty(i10) || isempty(i90), tr = NaN; else, tr = t(i90) - t(i10); end
 end
 
 function ts = settling_time(t, e)

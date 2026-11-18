@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "kind": "PLAN_NOT_TEST_RESULTS",
+  "course_parameters": {
+    "mass_kg": 1.2,
+    "inertia_diag_kg_m2": [
+      0.015,
+      0.015,
+      0.026
+    ],
+    "gravity_m_s2": 9.81,
+    "drag_N_s_m": 0.25,
+    "thrust_N": [
+      0,
+      24
+    ],
+    "torque_abs_N_m": [
+      0.5,
+      0.5,
+      0.1
+    ],
+    "tilt_max_deg": 35,
+    "wind_mean_x_m_s": 2,
+    "wind_mean_start_s": 15,
+    "wind_tau_s": 2,
+    "wind_std_per_axis_m_s": 1,
+    "ahrs_rate_Hz": 200,
+    "ahrs_std_deg": 0.5,
+    "gyro_rate_Hz": 200,
+    "gyro_std_rad_s": 0.01,
+    "gnss_rate_Hz": 50,
+    "gnss_good_std_m": [
+      0.02,
+      0.02,
+      0.04
+    ],
+    "gnss_degraded_std_m": [
+      0.5,
+      0.5,
+      1
+    ],
+    "reference_altitude_m": 2,
+    "takeoff_duration_s": 5,
+    "hover_duration_s": 3,
+    "figure8_a_m": 3,
+    "figure8_period_s": 20,
+    "figure8_laps": 2,
+    "report_pages": 6
+  },
+  "engineering_suggestions_not_official_thresholds": {
+    "hover_bias_debug_target_m": 0.01,
+    "step_sensitivity_relative_investigation_threshold": 0.02,
+    "comment": "Freeze numeric tolerances before execution; record absolute floors for near-zero metrics and reasons for any change."
+  },
+  "no_official_threshold_for": [
+    "tracking_RMS_m",
+    "NEES_acceptance_range",
+    "holdout_sample_count",
+    "runtime_minutes"
+  ],
+  "forbidden_shortcuts": [
+    "clamp_attitude_state_to_pass_tilt",
+    "truth_leak_to_estimated_feedback",
+    "reuse_invalid_old_wind_results_as_current",
+    "make_3sigma_band_centered_on_error",
+    "mark_runtime_PASS_without_execution"
+  ]
+}

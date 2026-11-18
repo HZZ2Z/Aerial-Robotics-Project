@@ -13,13 +13,17 @@ P.tiltmax = 35*pi/180;             % max tilt [rad]
 P.kd  = 0.25;                      % linear drag coefficient [N s/m]
 P.Ttrim = P.m*P.g;                 % hover thrust [N]
 
-% --- Wind ---
+% --- Wind (course: 2 m/s mean along x + OU gusts, sigma=1 m/s, tau=2 s) ---
+P.wind.mode  = 'mean_gust';        % none | mean_only | mean_gust | gust_only (component tests only)
 P.wind.vmean = 2;                  % mean wind along x [m/s]
 P.wind.t0    = 15;                 % mean wind start time [s]
 P.wind.tau   = 2;                  % gust filter time constant [s]
 P.wind.sigma = 1;                  % gust std per axis [m/s]
 
-% --- Sensors: rate, 1-sigma noise, spectral density r = sigma^2*Dt ---
+% --- Sensors: rate, 1-sigma noise, spectral density r = sigma^2/rate ---
+% Course model: continuous true signal + band-limited white noise of density
+% r; the noise is held constant over a grid dt (integer multiple of sim.dt).
+P.sens.model = 'ct_white_approx';  % 'sample_hold' = legacy extension (sensor_sfun.m)
 P.sens.ahrs.rate = 200;  P.sens.ahrs.sigma = 0.5*pi/180;          % rad
 P.sens.gyro.rate = 200;  P.sens.gyro.sigma = 0.01;                % rad/s
 P.sens.gnss.rate = 50;
@@ -32,6 +36,16 @@ end
 P.sens.gnss.rvec  = P.sens.gnss.sigma.^2 / P.sens.gnss.rate;
 P.sens.gnss.rbad  = P.sens.gnss.bad.^2   / P.sens.gnss.rate;
 
+% --- Noise generation: root seed + fixed per-stream offsets; hold grids ---
+P.noise.seed_base = 1729;          % dev seed; holdout seeds: 1009 2027 4093 8191 16381
+P.noise.dt_wind   = 1e-2;          % gust noise update grid [s]
+P.noise.dt_sensor = 5e-3;          % AHRS/gyro noise update grid [s]
+P.noise.dt_gnss   = 2e-2;          % GNSS noise update grid [s]
+P.noise.seed_wind = 21;            % per-axis offsets: base + seed_wind + (0:2)
+P.noise.seed_ahrs = 31;
+P.noise.seed_gyro = 41;
+P.noise.seed_gnss = 51;            % good-RTK stream; degraded stream uses +10
+
 % --- Mission (NED: z down, altitude h -> z* = -h) ---
 P.mis.h     = 2;        % cruise altitude [m]
 P.mis.tup   = 5;        % climb time [s]
@@ -41,7 +55,8 @@ P.mis.T8    = 20;       % figure-eight period [s]
 P.mis.laps  = 2;        % number of laps
 P.mis.tland = 5;        % landing time [s]
 P.mis.tb    = 3;        % polynomial blending window [s]
-P.mis.man   = 0;        % 1: dedicated Q(phi,theta) test manoeuvre
+P.mis.mode  = 'mission';           % mission | q_maneuver | hover_validation
+P.mis.t_hv  = 45;                  % hover_validation end time [s]
 
 % --- Simulation ---
 % climb + hover + blend-in + 2 laps + blend-out + hover + land
@@ -60,7 +75,10 @@ P.lqr.nmax   = [0.5; 0.5; 0.1];
 P.lqr.rhos   = [0.1 1 10];   % the three required weightings
 
 % --- Kalman filter (tunable; set in kf_design) ---
-P.kf.qa = 1.0;    % disturbance-of-acceleration intensity scale (tuned)
-P.kf.qf = 4.0;    % gust (OU) driving intensity, tau = P.wind.tau (4.0 = tilt-constrained empirical optimum; theory match was 0.2)
-P.kf.qs = 0.05;    % slow bias (random walk) intensity: mean wind drag, model error
+P.kf.mode          = 'rw9';  % course baseline; 'ou_bias12' = documented extension
+P.kf.qa            = 1.0;    % disturbance-of-acceleration intensity scale
+P.kf.qd            = 1.0;    % rw9 random-walk disturbance intensity
+P.kf.qf            = 4.0;    % ou_bias12 gust (OU) intensity, tau = P.wind.tau
+P.kf.qs            = 0.05;   % ou_bias12 slow bias (random walk) intensity
+P.kf.reacq_blend_s = 0;      % 0: hard gain switch (course baseline); >0: soft re-acq [s]
 end

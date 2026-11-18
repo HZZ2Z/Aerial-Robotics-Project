@@ -40,7 +40,7 @@ if F.use_est, xs = block.InputPort(2).Data; end
 ref = block.InputPort(3).Data;
 pr = ref(1:3); vr = ref(4:6); ar = ref(7:9);
 psir = ref(10); psidr = ref(11); psiddr = ref(12);
-if F.ff_wind, ar = ar + block.ContStates.Data(4:6); end   % low-passed d-hat ff
+if F.ff_wind, ar = ar - block.ContStates.Data(4:6); end   % pdd = ua + d: command ua = aref - d_hat
 
 e3 = [0;0;1];
 Q0 = euler_kin(xs(7:9));

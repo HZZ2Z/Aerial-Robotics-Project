@@ -1,0 +1,42 @@
+你正在改进 HZZ2Z/Aerial-Robotics-Project 的 MATLAB/Simulink 课程项目。请依据本开发包实际实施修改、验证与交付，不要只回复计划。
+
+【目标】
+使课程场景输入正确、统计验证可信、课程Objectives 1–7得到完整证据，产出6页IEEE双栏论文和可从单一入口复现的代码ZIP。可选Bonus与12状态估计器作为扩展单独评价。
+
+【先阅读】
+读取目标仓库及父目录的AGENTS.md，再依次读取本包00_START_HERE.md、01_AUDIT_REGISTER.md、02_PHASED_PLAN.md、06_FILE_CHANGE_MAP.md、07_DEVELOPMENT_RULES.md。实施P1/P2读03_PHYSICS_ESTIMATION.md；P3读04_CONTROL_EXPERIMENTS.md；验收和论文读05_ACCEPTANCE_AND_REPORT.md。课程原件project2026.pdf / project2026_slides.pdf若可获得一并对照，来源与哈希见10_EVIDENCE_AND_SOURCES.md。
+
+【版本与授权范围】
+审查基线为main@1d15ca7a728d2022cc373d52bea6dbbb2fbdd3d9。先检查实际HEAD与工作树；如有新提交，复核旧发现，记录已修/仍在/不适用，禁止覆盖用户未提交工作。可创建本地分支或隔离worktree，执行必要的本地可逆代码修改、构建、测试和提交，不需逐项重复确认。没有本轮会话额外授权，不推送、不发PR/评论、不合并、不发布。
+
+【已确认的优先问题】
+1. build_closed中wmux纯阵风接plant，恒风+阵风wsum只进日志；nominal也始终有阵风。
+2. OU滤波器用s+tau，tau=2被实现为0.5s；修为正确2s时间常数并统一噪声谱密度。
+3. d真值由错误风日志计算；模型不确定性下也只用风阻；先统一日志和扰动定义。
+4. 误差图用ep±3sigma作为阴影，必须改为零中心界；P切换/传播与实际增益时序一致。
+5. kf_sfun协方差混合使用错误状态索引；旧qd扫描已不生效；创新零均值未验证。
+6. 恢复课程rw9基线，ou_bias12为扩展；9维输出投影的NEES参考9可以成立，不要误判维数。
+7. 完成三rho误差—控制努力比较、正确悬停积分验证、主入口统一专用Q机动；惯量±20%都覆盖。
+8. Bonus前馈应a_ref-d_hat；完全GNSS断测后应恢复good，不能持续degraded。
+9. 报告包含占位且结果图未嵌入，入口/工具箱/归档脚本说明过时。
+
+【实施顺序】
+按P0冻结基线与环境→P1风场/传感器/真值→P2KF/协方差/统计→P3控制对照/Bonus→P4全场景→P5论文/复现/打包→P6冻结RERUN推进。先修正确性，再调性能。上一轮错误风场的RMS数字不作为新版本门槛。
+
+【实现边界】
+保留六自由度模型、15状态LQR、精确Q、现有函数与S-function结构。按06_FILE_CHANGE_MAP.md统一配置与日志，不重写为其他平台，不新增通用框架。根main(mode)为薄入口，内部由matlab/run_project.m编排，避免与旧matlab/main.m重名递归。9状态基线先通过，再开展12状态对照。
+
+实际风与日志同源；实际施加推力/力矩、延迟前命令与KF使用命令分别记录。真实状态只用于评价和ideal路径，不能泄漏到estimated控制/KF。连续白噪声的有限带宽实现需固定网格和正确谱密度，禁止在ODE子步抽随机数。模型协方差不冒称实测真实协方差。
+
+【验收】
+使用本包的课程追踪与验收标准。核心任务10次=ideal/estimated×nominal/wind/rtk_lost/uncert_Jplus/uncert_Jminus；另有三权重、恒风悬停、Q对照。Bonus独立标记。相同配置的有效运行可以复用，避免无意义重复。预定少量独立seed，只检验关键结论，不展开无限调参。
+
+课程硬约束、工程建议、实测观察分开。不能通过修改物理参数、扩大阈值、裁剪状态/时间窗口、丢弃失败seed或复制旧图制造PASS。图表与论文数值来自统一metrics，保存配置与hash。每次full运行创建新的execution_id目录，稳定case_id映射场景；run_id由execution_id/case_id构成。解压后的RERUN生成新批次，保留并比较随包冻结结果，不能覆盖或因固定run_id碰撞而停止。
+
+【环境和进度】
+先检查MATLAB、Simulink、Control System Toolbox与许可证。没有这些时完成仍可执行的修改、静态核查和文档，动态项如实标BLOCKED，并提供继续执行的命令；不要声称Python/Octave计算等价于Simulink复跑。缺真实作者/学号时不编造，执行状态记为BLOCKED、原因记为MISSING_METADATA，但继续技术工作。
+
+使用templates/PROGRESS_TEMPLATE.md、RUN_MANIFEST_TEMPLATE.json与RERUN_TEMPLATE.md记录状态。模板中的null/NOT_RUN必须由真实结果填写，不能默认通过。每阶段汇报改了什么、为什么、如何验证、仍有什么限制，然后继续下阶段。
+
+【最终交付】
+给出本地修改提交、关键diff说明、逐项关闭/未关闭问题、全场景指标、正式报告PDF、代码ZIP、复现命令与冻结RERUN记录。只有完整复跑确实通过才写RERUN PASS。若有阻塞，交付所有已完成工作和准确阻塞点，不宣称整体完成。最终交付所用源码、配置、图表和指标必须来自同一冻结版本。

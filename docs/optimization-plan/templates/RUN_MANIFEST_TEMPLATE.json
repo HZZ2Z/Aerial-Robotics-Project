@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "template_only": true,
+  "status": "NOT_RUN",
+  "source": {
+    "repository": "https://github.com/HZZ2Z/Aerial-Robotics-Project",
+    "audited_commit": "1d15ca7a728d2022cc373d52bea6dbbb2fbdd3d9",
+    "actual_commit": null,
+    "worktree_dirty": null
+  },
+  "environment": {
+    "matlab": null,
+    "simulink": null,
+    "control_system_toolbox": null,
+    "os": null,
+    "license_check": null
+  },
+  "run": {
+    "run_id": null,
+    "scenario_id": null,
+    "feedback": null,
+    "kf_mode": null,
+    "reference_mode": null,
+    "resolved_parameters": null,
+    "parameter_sha256": null,
+    "seed_base": null,
+    "stream_seeds": null,
+    "solver": null,
+    "solver_step_s": null,
+    "noise_dt_sensor_s": null,
+    "noise_dt_wind_s": null,
+    "tfinal_s": null,
+    "started_at": null,
+    "finished_at": null,
+    "command": null,
+    "exit_code": null,
+    "execution_id": null,
+    "case_id": null
+  },
+  "artifacts": [],
+  "failures": [],
+  "not_executed_reason": null
+}

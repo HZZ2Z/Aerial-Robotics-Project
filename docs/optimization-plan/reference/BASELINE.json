@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "repository": "https://github.com/HZZ2Z/Aerial-Robotics-Project",
+  "branch": "main",
+  "commit": "1d15ca7a728d2022cc373d52bea6dbbb2fbdd3d9",
+  "verified_date": "2026-11-17",
+  "timezone": "Asia/Taipei",
+  "matlab_execution_performed": false,
+  "files_sha256": {
+    "README.md": "6629c25f9ed55bfb8ee2d77859869e6eb827a17feed81a1e52e75820318d86b2",
+    "README.txt": "168c4d01354a8cd98e3f499d2dfc5fe8813a4efb8bbe8a5f84ba954a006d2184",
+    "docs/autoresearch/bench_ertk.m": "af069404602aa665bb98c625e13f9b805ada658fdf16d369fc3f773216c36c41",
+    "docs/autoresearch/checks.sh": "8be8c616cb7417394a1fc83b3a485776e0e7e3231a4335d268589dbe013420b6",
+    "docs/autoresearch/measure.sh": "3bb7616a4560b349d4ddd9280519f666b8cbdcf0b50cff450ea79dc20a937bdd",
+    "matlab/animate_mission.m": "86dc056d546b402e1a7357801a117065001a6235a0e4db325e4118571ddb2d0d",
+    "matlab/build_closed.m": "b8e7069c8d0d92b32b911a3337af8dadb337818a50d0259ce909a901632881a2",
+    "matlab/build_plant.m": "a7daaf41313ee31432b38484e414f247857c28cdbc37f9abde7670bd03ce02db",
+    "matlab/ctrl_sfun.m": "7b9b2ac3b703ebed6528c0ec2faa17899ac1a9197091a670c89bab9e56277d95",
+    "matlab/euler2rot.m": "cf6288cee2864b5abd8ab3289b4a3e47574311bb0ef75e4d48e8473620731c91",
+    "matlab/euler_kin.m": "2ccf7c03d80353703e57d956fb775b2187c71a4daf276fc1ed5e77d25686fd57",
+    "matlab/gen_ref.m": "cb4e80812007c342b45ea611b42d09f5d94cd8a564d8ffe04171ea7b027d3895",
+    "matlab/kf_design.m": "1d6d64ff247985fb5c0fc3ca18a75655ee7fb03fce036034f2267ccb5fb92476",
+    "matlab/kf_sfun.m": "7517025f8bd162b2aadf955aea9d87b88d0aa388789115491311fdc4e4d3c2c1",
+    "matlab/lin_hover.m": "8f3d1e9efa2033b00fff23247d2769d7b50e13fd54bf9c37351ed3159f52bf66",
+    "matlab/lqr_design.m": "7141d39ab801571ea05405c191f85027983ea8c0e272a8f1e439bf0c490a0438",
+    "matlab/main.m": "70931921d349f9f0a8dfb12bf71fa1a32eb2fc3f61a30c41e55208e6a02b6f7f",
+    "matlab/make_figures.m": "d3e9fb56cb859972dd8023c69114258f570c9a07584c7ac9fd53bd9850f3c60b",
+    "matlab/metrics.m": "0469050bb25e60fe63921f700885d0c4f6b3e9b201fdb95582cf3a6fd76c65c9",
+    "matlab/params.m": "d74f291246f5500cd9f2d4e13fe96956ae3327f1f9e6abcd169367ee7ac26541",
+    "matlab/quad_dynamics.m": "4dda7fe9518b955f1ee832c222ecee3b0868b71f44ee0d2344eea060fcb12e4b",
+    "matlab/quad_sfun.m": "3bb7c0ce0dc40e327a94d1884f41631d3909d44f6af8b6a81f4e72a8ef57710d",
+    "matlab/ref_sfun.m": "fd37fa52ea160499a594d52606acfa6ebf760e1b3a457bb0352da0dc5230191f",
+    "matlab/rot2euler.m": "5c5b6438810bf0dd5cd930c87d0a3571c613c108617c048e5893ff7d594c7a03",
+    "matlab/run_closed.m": "f3d3a28f7240b969a7411d404986cc5a515cbab91c5731f2990e3308db47fc09",
+    "matlab/run_scenarios.m": "d0f981d78e3951e1f47e3c5cdec147644a223df418382f675184f6f54351cd6d",
+    "matlab/sensor_sfun.m": "0bf3a0e21ae2546d1f642d78b03ddba32901f879e653cd03ab5a143c67b4d29c",
+    "matlab/test_anim.m": "29a8b35cfff20df7af72ae6e2bc5abaea28c5329cab39b1ddf1108eb838f74ba",
+    "matlab/test_bonus.m": "23a1099d4b1a6caccaccd0de2fe1a9757c67f1537fe726c91b9ad13ef44d0b68",
+    "matlab/test_closed.m": "de327cdf39929f0c01cb230c01d400e971c04e9cee1ec89da33261ad9f007e02",
+    "matlab/test_kf.m": "e486ac9c302f188599771ef835cc8bd17a24518397cdb2c6d16f7a31c77d5bfa",
+    "matlab/test_plant.m": "cc9e636bfbe223aff7202aa4a015a5ab32cdd57ca084c40310b144ce4347e6d1",
+    "report/main.tex": "2ab32aa338d8a078ab38e24f167a04b698bd750964346d3a3321b3283f65f696",
+    "simulink/closed_loop.slx": "5782e45cc793d01d9c91f3aa499471fefde505f71f9e9425ef242630f001fdec",
+    "simulink/plant_test.slx": "460be113beb41e249579799b0e3b58236f2b1a06655effcbaceedeb0cc83c6de"
+  },
+  "course_sources": [
+    {
+      "name": "project2026.pdf",
+      "sha256": "df0091f44004bba764bdb95ac9ff37fe4b4dd2e611121f9bbe46ea98956d4bfc"
+    },
+    {
+      "name": "project2026_slides.pdf",
+      "sha256": "a327284494d409b31834ae444842d70492d255ff40d72b972bfd484a21035b9f"
+    }
+  ]
+}

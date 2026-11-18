@@ -1,5 +1,8 @@
 function sensor_sfun(block)
-%SENSOR_SFUN Sampled sensor with additive white noise (sample & hold).
+%SENSOR_SFUN Legacy sensor extension: sample & hold of true signal + noise.
+% NOT used by the course baseline: build_closed wires the course model
+% (continuous true signal + band-limited white noise of density r) natively.
+% Kept as a clearly marked engineering extension (per-instance seeds).
 % in1 = true signal (3), in2 = fix status (1, used only for gnss mode);
 % out = measured (3).
 % mode: 1=AHRS (200 Hz), 2=rate gyro (200 Hz), 3=GNSS (50 Hz, fix-switched)

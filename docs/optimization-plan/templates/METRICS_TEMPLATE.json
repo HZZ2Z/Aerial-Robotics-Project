@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "template_only": true,
+  "status": "NOT_RUN",
+  "run_id": null,
+  "source_commit": null,
+  "definitions": "See 05_ACCEPTANCE_AND_REPORT.md; all vector RMS use the 3D norm, with time weighting where needed.",
+  "values": {
+    "position_rms_3d_m": null,
+    "position_max_3d_m": null,
+    "position_rms_axis_m": null,
+    "hover_window_s": null,
+    "hover_bias_vector_m": null,
+    "hover_bias_norm_m": null,
+    "hover_dynamic_rms_3d_m": null,
+    "est_position_rms_3d_m": null,
+    "est_velocity_rms_3d_m_s": null,
+    "est_d_model_rms_3d_m_s2": null,
+    "tilt_max_deg": null,
+    "thrust_deviation_rms_N": null,
+    "torque_rms_axis_N_m": null,
+    "normalized_effort_rms": null,
+    "saturation_time_fraction": null,
+    "nees_output9_mean": null,
+    "coverage_3sigma_by_axis_and_mode": null,
+    "innovation_mean_by_axis_and_mode": null
+  },
+  "validation": {
+    "course_physical_limits": "NOT_RUN",
+    "covariance_and_truth": "NOT_RUN",
+    "figures_and_table_match": "NOT_RUN"
+  }
+}

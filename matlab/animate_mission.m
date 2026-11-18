@@ -1,9 +1,10 @@
 function anim = animate_mission(o, P, fname)
 %ANIMATE_MISSION 3-D animation: vehicle, reference, true and estimated
-% trajectories, horizontal position covariance ellipse. Saves mp4.
+% trajectories, horizontal 1-sigma covariance ellipse (eig of P9(1:2,1:2),
+% covariance orientation preserved; axis lengths are 1-sigma, NOT 68%/95%).
+% Saves mp4. All data comes from the single run o (including P_out).
 root = fileparts(fileparts(mfilename('fullpath')));
 if nargin < 3 || isempty(fname), fname = 'mission_anim.mp4'; end
-sdg = sqrt(diag(evalin('base', 'Pg'))); sdb = sqrt(diag(evalin('base', 'Pb')));
 
 fig = figure('Color', 'w', 'Position', [80 80 900 650]);
 ax = axes(fig); hold(ax, 'on'); grid(ax, 'on'); view(ax, 40, 22);
@@ -13,7 +14,8 @@ hT = plot3(ax, NaN, NaN, NaN, 'b-',  'LineWidth', 1.2);
 hE = plot3(ax, NaN, NaN, NaN, 'r-.', 'LineWidth', 1);
 hv = plot3(ax, NaN, NaN, NaN, 'bo', 'MarkerFaceColor', 'b', 'MarkerSize', 6);
 he = plot3(ax, NaN, NaN, NaN, 'g-',  'LineWidth', 1.2);
-legend(ax, {'reference', 'true', 'estimated', 'vehicle', '1-sigma ellipse'}, 'Location', 'best');
+legend(ax, {'reference', 'true', 'estimated', 'vehicle', '1\sigma ellipse (P_{xy} eig)'}, ...
+    'Location', 'best');
 axis(ax, 'equal');
 
 th = linspace(0, 2*pi, 40);
@@ -24,9 +26,10 @@ for k = 1:step:n
     set(hT, 'XData', o.p(1:k,1),  'YData', o.p(1:k,2),  'ZData', o.p(1:k,3));
     set(hE, 'XData', o.kf(1:k,1), 'YData', o.kf(1:k,2), 'ZData', o.kf(1:k,3));
     set(hv, 'XData', o.p(k,1), 'YData', o.p(k,2), 'ZData', o.p(k,3));
-    if o.fix(k) > 0.5, sd = sdg(1:2); else, sd = sdb(1:2); end
-    set(he, 'XData', o.kf(k,1) + sd(1)*cos(th), ...
-            'YData', o.kf(k,2) + sd(2)*sin(th), 'ZData', o.kf(k,3) + 0*th);
+    Pxy = o.P_out(k, 1:2, 1:2);  Pxy = (Pxy + Pxy')/2;
+    [V, D] = eig(Pxy);
+    E = o.kf(k,1:2)' + V*diag(sqrt(max(diag(D), 0)))*[cos(th); sin(th)];
+    set(he, 'XData', E(1,:), 'YData', E(2,:), 'ZData', o.kf(k,3) + 0*th);
     drawnow;
     writeVideo(v, getframe(fig));
 end
