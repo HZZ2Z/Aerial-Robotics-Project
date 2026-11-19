@@ -94,20 +94,20 @@ applied thrust and logged alongside.*
 
 ## 📊 Results — 10-run core matrix (seed 1729)
 
-<!-- RESULTS_TABLE_PLACEHOLDER: filled from results/<batch>/metrics.json by P5 -->
+<!-- filled from results/full_20261119_025000/metrics.json -->
 
 | Mode | Scenario | RMS 3-D error [m] | Max 3-D error [m] | Hover offset ‖b‖ [m] | est. p/v/d RMS | Max tilt | effort U_RMS |
 |:-----|:---------|-----:|-----:|-----:|:----:|-----:|-----:|
-| ideal | nominal | PENDING | | | — | | |
-| ideal | wind + gusts | PENDING | | | — | | |
-| ideal | RTK degraded 5 s | PENDING | | | — | | |
-| ideal | uncert. J +20% | PENDING | | | — | | |
-| ideal | uncert. J −20% | PENDING | | | — | | |
-| estimated | nominal | PENDING | | | | | |
-| estimated | wind + gusts | PENDING | | | | | |
-| estimated | RTK degraded 5 s | PENDING | | | | | |
-| estimated | uncert. J +20% | PENDING | | | | | |
-| estimated | uncert. J −20% | PENDING | | | | | |
+| ideal | nominal | 0.028 | 0.123 | 0.033 | N/A | 15.2 | 0.09 |
+| ideal | wind | 0.106 | 0.277 | 0.086 | N/A | 17.1 | 0.11 |
+| ideal | RTK degraded 5 s | 0.106 | 0.277 | 0.086 | N/A | 17.1 | 0.11 |
+| ideal | uncert. J +20% | 0.113 | 0.391 | 0.082 | N/A | 16.9 | 0.41 |
+| ideal | uncert. J −20% | 0.113 | 0.391 | 0.079 | N/A | 16.6 | 0.40 |
+| estimated | nominal | 0.029 | 0.112 | 0.027 | 0.024/0.16/0.16 | 15.4 | 0.17 |
+| estimated | wind | 0.122 | 0.302 | 0.085 | 0.024/0.16/0.31 | 17.4 | 0.18 |
+| estimated | RTK degraded 5 s | 0.208 | 0.958 | 0.085 | 0.106/0.24/0.32 | 32.3 | 0.24 |
+| estimated | uncert. J +20% | 0.144 | 0.555 | 0.081 | 0.024/0.16/0.50 | 17.0 | 0.45 |
+| estimated | uncert. J −20% | 0.144 | 0.555 | 0.077 | 0.024/0.16/0.50 | 16.5 | 0.44 |
 
 *Both uncertainty scenarios are mass +20 % with a 20 ms input delay; inertia ±20 %.
 All numbers come from the frozen batch `results/<execution_id>/metrics.json` — same

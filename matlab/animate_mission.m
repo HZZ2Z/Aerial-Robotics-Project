@@ -26,7 +26,7 @@ for k = 1:step:n
     set(hT, 'XData', o.p(1:k,1),  'YData', o.p(1:k,2),  'ZData', o.p(1:k,3));
     set(hE, 'XData', o.kf(1:k,1), 'YData', o.kf(1:k,2), 'ZData', o.kf(1:k,3));
     set(hv, 'XData', o.p(k,1), 'YData', o.p(k,2), 'ZData', o.p(k,3));
-    Pxy = o.P_out(k, 1:2, 1:2);  Pxy = (Pxy + Pxy')/2;
+    Pxy = squeeze(o.P_out(k, 1:2, 1:2));  Pxy = (Pxy + Pxy')/2;
     [V, D] = eig(Pxy);
     E = o.kf(k,1:2)' + V*diag(sqrt(max(diag(D), 0)))*[cos(th); sin(th)];
     set(he, 'XData', E(1,:), 'YData', E(2,:), 'ZData', o.kf(k,3) + 0*th);

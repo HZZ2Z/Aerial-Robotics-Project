@@ -9,6 +9,7 @@
 
 \newcommand{\eg}{e.g.}
 \newcommand{\Rmat}{\mathbb{R}}
+\newcommand{\tabref}{Table~\ref}
 
 \begin{document}
 
@@ -97,6 +98,29 @@ n = J\,Q^{-1}\big(\ddot\eta_{\mathrm{cmd}}-\dot Q\,\omega\big) + \omega\times J\
 \end{equation}
 so that $\ddot\eta=\ddot\eta_{\mathrm{cmd}}$ holds exactly at any admissible attitude.
 
+\subsection{Parameters}
+\tabref{tab:params} lists the course-given vehicle, sensor and wind parameters used
+throughout; they are collected in a single configuration file that every design script
+and both Simulink models read, so no value exists twice in the code base.
+
+\begin{table}[t]
+\centering
+\caption{Vehicle, sensor and wind parameters (course statement).}
+\label{tab:params}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{llll}
+\toprule
+mass $m$ & 1.2 kg & inertia $J$ & $\mathrm{diag}(15,15,26)\cdot10^{-3}$ kg\,m$^2$\\
+gravity $g$ & 9.81 m/s$^2$ & drag $k_d$ & 0.25 N\,s/m\\
+thrust $T$ & $0\le T\le 24$ N & torques & $|n_{x,y}|\le0.5$, $|n_z|\le0.1$ N\,m\\
+tilt limit & $35^\circ$ & hover thrust & $mg=11.77$ N\\
+AHRS / gyros & 200 Hz & noise & $\sigma_\eta=0.5^\circ$, $\sigma_\omega=0.01$ rad/s\\
+RTK GNSS & 50 Hz & noise & good $2/2/4$ cm; degraded $0.5/0.5/1$ m\\
+mean wind & 2 m/s, $x$, $t=15$ s & gusts & $\sigma=1$ m/s, $\tau=2$ s (OU)\\
+\bottomrule
+\end{tabular}}
+\end{table}
+
 \subsection{Mission and reference trajectory}
 The vehicle starts at rest at $p=0$ and must (i) climb to $z^\ast=-2$~m in 5~s and hover
 3~s, (ii) fly two laps of the lemniscate
@@ -127,7 +151,7 @@ A=\begin{bmatrix}
 0&0&0&0&0
 \end{bmatrix}\!\!,
 \quad
-B=\begin{bmatrix}
+B=\!\begin{bmatrix}
 0&0\\ 0&0\\ -\mathbf{e}_3/m&0\\ 0&0\\ 0&J^{-1}
 \end{bmatrix}\!\!,
 \label{eq:linA}
@@ -162,7 +186,7 @@ cycling and a $50.6^\circ$ tilt peak---violating the $35^\circ$ course limit---w
 $\rho=10$ with the correspondingly smoothed estimator tuning ($q_a=0.5$, $q_d=0.3$,
 chosen inside the flat optimum of the tuning sweep) keeps every core scenario below
 $35^\circ$ (worst case $32.3^\circ$) at a modest tracking cost
-(\figurename~\ref{fig:rho}). The gain $K$ has the chain-decoupled zero pattern of
+(\figurename~\ref{fig:rho}, \tabref{tab:rho}). The gain $K$ has the chain-decoupled zero pattern of
 Section~II-D: $\delta T$ is driven only by the $z$-chain, $n_x$ by the $y$-roll chain and
 $n_y$ by the $x$-pitch chain, $n_z$ by the yaw chain. Recovery from a 1~m initial position
 error (equivalent unit-step response $y=1-e/e_0$) gives a 10--90\,\% rise time,
@@ -178,6 +202,15 @@ gusts), ablating only the integral rows of $K$ leaves a mean offset of
 $\hovBiasOff$~m over the wind-on window $[35,45]$~s, while the full controller
 rejects it to $\hovBiasOn$~m---the integral action, not the reference feed-forward,
 removes the constant-wind bias.
+
+\begin{table}[t]
+\centering
+\caption{LQR weight comparison on the full nonlinear mission (ideal states) and
+recovery metrics of the flight configuration. Effort is normalized by the fixed
+Bryson scales of the applied input.}
+\label{tab:rho}
+\resizebox{\columnwidth}{!}{\input{rho_table.tex}}
+\end{table}
 
 \subsection{Feed-forward and torque mapping}
 The commanded Euler accelerations are
@@ -264,24 +297,40 @@ process/measurement noise assumptions; the measurements are band-limited approxi
 with correlation time $\Delta t$, and the innovation statistics are reported
 descriptively rather than judged as independent white samples.
 
+\emph{Tuning rationale and verification order.} The process-noise intensities
+$(q_a,q_d)$ are the only free tuning knobs of the rw9 baseline; they were swept on the
+wind scenario with every other factor fixed (seed, mission, solver step). The sweep is
+flat: mission position RMS varies between 0.089 and 0.099~m over
+$q_a\in\{0.5,1,2\}\times q_d\in\{0.3,1,3\}$, so the operating point was selected inside
+that flat optimum by the tilt constraint of Section~III ($q_a=0.5$, $q_d=0.3$), not by
+the tracking metric. Before any nonlinear number was interpreted, the statistics
+machinery itself was calibrated on the model-matched linear problem
+(ANEES $9.28$, coverage $99.4\,\%$); the innovation mean over the RTK-good segments of
+the reported runs is below $2$~cm per axis against a $3\sigma$ bound of $6$--$12$~cm,
+consistent with the finite-bandwidth measurement approximation. A documented extension
+(`ou\_bias12') splits $d$ into an OU gust state and a slow random-walk bias; on identical
+scenarios and seeds its mission tracking matches the rw9 baseline while its disturbance
+estimate scatters more against the physical truth $d_{\mathrm{model}}$, so the course
+baseline is retained as the formal result and the extension is reported separately.
+
 \begin{figure}[t]
 \centering
 \resizebox{\columnwidth}{!}{%
-\begin{tikzpicture}[node distance=4mm, >=Latex, box/.style={draw, minimum height=8mm, align=center, font=\small}]
+\begin{tikzpicture}[node distance=7mm, >=Latex, box/.style={draw, minimum height=10mm, align=center, font=\small, inner sep=2pt}]
 \node[box] (ref) {reference};
-\node[box, right=of ref] (kf) {Kalman\\ filter $\hat p,\hat v,\hat d$};
+\node[box, right=of ref] (kf) {KF $\hat p,\hat v,\hat d$};
 \node[box, right=of kf] (ctl) {LQR};
-\node[box, right=of ctl] (tq) {torque map};
+\node[box, right=of ctl] (tq) {torque\\ map};
 \node[box, right=of tq] (veh) {quadrotor};
-\node[box, below=7mm of kf] (sns) {AHRS 200 Hz, gyros 200 Hz,\\ RTK GNSS 50 Hz};
-\draw[->] (ref) -- node[above,font=\footnotesize]{$p^\ast,\dot p^\ast,\ddot p^\ast,\psi^\ast$} (ctl);
+\node[box, below=8mm of kf] (sns) {AHRS+gyros 200 Hz\\ RTK GNSS 50 Hz};
+\draw[->] (ref) -- node[above,font=\footnotesize]{$p^\ast,\dot p^\ast,\psi^\ast$} (ctl);
 \draw[->] (kf) -- node[above,font=\footnotesize]{$\hat p,\hat v$} (ctl);
 \draw[->] (ctl) -- node[above,font=\footnotesize]{$T,\ddot\eta_{\mathrm{cmd}}$} (tq);
 \draw[->] (tq) -- node[above,font=\footnotesize]{$T,n$} (veh);
-\draw[->] (veh.south) |- node[font=\footnotesize]{$p,\eta,\omega$} (sns.east);
-\draw[->] (sns.west) -| node[font=\footnotesize]{$\eta_{m},\omega_m$} (kf.south);
-\draw[->] (sns.north) -- node[right,font=\footnotesize]{$p_{\mathrm{meas}}$} (kf.south east);
-\draw[->] (ctl.south) |- node[font=\footnotesize]{$T_{\mathrm{cmd}}$} (kf.west);
+\draw[->] (veh.south) |- node[below left,font=\footnotesize]{$p,\eta,\omega$} (sns.east);
+\draw[->] (sns.west) -| node[below,font=\footnotesize]{$\eta_{m},\omega_m$} (kf.south);
+\draw[->] (sns.north) |- node[right,font=\footnotesize]{$p_{\mathrm{meas}}$} (kf.south east);
+\draw[->] (ctl.south) |- node[above left,font=\footnotesize]{$T_{\mathrm{cmd}}$} (kf.west);
 \end{tikzpicture}}
 \caption{Controller--estimator loop (output feedback).}
 \label{fig:loopblock}
@@ -310,7 +359,7 @@ $35^\circ$ limit in every core run, with the largest transients under the RTK ou
 \centering
 \caption{Core scenario matrix (10 runs, seed 1729).}
 \label{tab:core}
-\input{metrics_table.tex}
+\resizebox{\columnwidth}{!}{\input{metrics_table.tex}}
 \end{table}
 
 \subsection{Estimator validation}
@@ -443,7 +492,7 @@ consistency was validated first on the model-matched linear problem (ANEES $9.28
 coverage $99.4\,\%$) and then reported honestly on the nonlinear mission, where the
 propagated covariance is conservative. The integral action removes the constant-wind hover
 bias ($\hovBiasOn$ vs $\hovBiasOff$~m ablated), and the disturbance feed-forward bonus
-improves tracking by about 40\,\% RMS. All numbers, figures and tables of this paper are
+improves the wind-scenario tracking RMS from $\ffOff$~m to $\ffOn$~m. All numbers, figures and tables of this paper are
 generated from a single frozen batch by one entry point; the 12-state two-time-scale
 filter and the soft gain re-acquisition blend are documented extensions evaluated on
 identical scenarios.
