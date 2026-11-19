@@ -75,14 +75,14 @@ P.lqr.nmax   = [0.5; 0.5; 0.1];
 P.lqr.rhos   = [0.1 1 10];   % the three required weightings
 
 % --- Kalman filter (tunable; set in kf_design) ---
-P.kf.mode          = 'rw9';  % course baseline; 'ou_bias12' = documented extension
+P.kf.mode          = 'ou_bias12';  % course baseline 'rw9'; ou_bias12 = documented extension
 P.kf.qa            = 0.5;    % disturbance-of-acceleration intensity scale
 P.kf.qd            = 0.3;    % rw9 random-walk disturbance intensity
 % qa/qd flight tuning is constraint-driven: at qa=1/qd=1 the estimated RTK-outage
 % transient amplifies the degraded-mode velocity-estimate noise through the LQR
 % (tilt 50.6 deg > 35 deg limit); qa=0.5/qd=0.3 keeps every core scenario inside
 % the limit (max 32.3 deg) at negligible tracking cost (test_kf sweep is flat).
-P.kf.qf            = 4.0;    % ou_bias12 gust (OU) intensity, tau = P.wind.tau
+P.kf.qf            = 0.5;    % ou_bias12 gust (OU) intensity, tau = P.wind.tau
 P.kf.qs            = 0.05;   % ou_bias12 slow bias (random walk) intensity
 P.kf.reacq_blend_s = 1.5;    % 0: hard gain switch (course baseline); >0: soft re-acq [s]
 end
