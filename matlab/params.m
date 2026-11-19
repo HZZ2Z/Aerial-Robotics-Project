@@ -82,7 +82,7 @@ P.kf.qd            = 0.3;    % rw9 random-walk disturbance intensity
 % transient amplifies the degraded-mode velocity-estimate noise through the LQR
 % (tilt 50.6 deg > 35 deg limit); qa=0.5/qd=0.3 keeps every core scenario inside
 % the limit (max 32.3 deg) at negligible tracking cost (test_kf sweep is flat).
-P.kf.qf            = 0.5;    % ou_bias12 gust (OU) intensity, tau = P.wind.tau
+P.kf.qf            = 0.75;   % ou_bias12 gust (OU) intensity, tau = P.wind.tau
 P.kf.qs            = 0.05;   % ou_bias12 slow bias (random walk) intensity
 P.kf.reacq_blend_s = 1.5;    % 0: hard gain switch (course baseline); >0: soft re-acq [s]
 end
