@@ -38,3 +38,9 @@ AerialRobotics_2026_code.zip
 #  ignoring .auto/ itself breaks `git add -A -- . :(exclude).auto`)
 autoresearch-dashboard.html
 .auto/bench_last.txt
+
+# --- recursive mat ignore + large diagnostic dirs (dir-level so git skips traversal) ---
+results/**/*.mat
+results/scratch/
+results/diag_*/
+results/legacy_*/
