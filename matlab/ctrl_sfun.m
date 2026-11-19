@@ -100,6 +100,14 @@ e  = Rp'*(xs(1:3) - ref(1:3));
 if sat                              % anti-windup: stop integrating
     e = 0*e;
 end
+% integrator clamp (bounds outage windup: drift integrates e freely and the
+% certainty-equivalence LQR then chases it — see ximax/etamax probes)
+P = block.DialogPrm(1).Data;
+if isfield(P.lqr, 'xi_max')
+    xi = block.ContStates.Data(1:3);
+    free = (abs(xi) < P.lqr.xi_max) | (sign(e) ~= sign(xi));
+    e = e .* free;                  % integrate only inside the box or inward
+end
 F  = block.DialogPrm(3).Data;
 dhf = block.ContStates.Data(4:6);
 tau = 1; if isfield(F, 'ff_tau'), tau = F.ff_tau; end

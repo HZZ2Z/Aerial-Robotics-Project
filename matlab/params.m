@@ -66,6 +66,9 @@ P.sim.dt     = 1e-3;                     % fixed solver step [s]
 
 % --- LQR (Bryson maxima; R scaled by rho) ---
 P.lqr.ximax  = 0.5;          % integral-error scale [m s]
+P.lqr.xi_max = 0.45;         % integrator clamp [m s]: bounds outage windup (drift
+                             % integrates freely otherwise); ~3x the legit wind
+                             % integral so plain-wind tracking is unaffected
 P.lqr.emax   = 1.0;          % position error scale [m]
 P.lqr.vmax   = 1.0;          % velocity error scale [m/s]
 P.lqr.etamax = 20*pi/180;    % attitude error scale [rad]
