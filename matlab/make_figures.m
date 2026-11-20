@@ -117,8 +117,8 @@ for i = 1:numel(S.Ks)
 end
 xlabel('Re'); ylabel('Im'); title('eig(A - BK) for \rho = 0.1, 1, 10');
 nexttile(tl); imagesc(abs(S.Ks{3})); colorbar; colormap('gray');
-xticks(1:3:15); xticklabels({'\int e_x','e_x','\dot e_x','\phi','\dot\phi',''});
-xtickangle(0); yticks(1:4); yticklabels({'\delta T', 'n_x', 'n_y', 'n_z'});
+xticks([2 5 8 11 14]); xticklabels({'\int e','e','\dot e','e_t','\dot e_t'});
+xtickangle(30); yticks(1:4); yticklabels({'\delta T', 'n_x', 'n_y', 'n_z'});
 title('|K|, \rho = 10');
 nexttile(tl); hold on; grid on;
 st = S.cl(3).step;                                % rho = 10 flight config
@@ -185,7 +185,7 @@ for w = [1 5]
     plot(o.t(win), dr(win), 'LineWidth', 1, 'DisplayName', sprintf('%d s outage', w));
 end
 xline(20, ':', 'HandleVisibility', 'off'); xline(25, ':', 'HandleVisibility', 'off');
-xlabel('t [s]'); ylabel('||\hat p - p|| [m]');
+xlabel('t [s]'); ylabel('$\Vert\hat{p} - p\Vert$ [m]', 'Interpreter', 'latex');
 legend('Location', 'best');
 title('complete GNSS loss: drift during and after the outage');
 savepdf(f, fgs, 'nofix');

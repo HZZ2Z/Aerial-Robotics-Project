@@ -104,8 +104,9 @@ end
 % certainty-equivalence LQR then chases it — see ximax/etamax probes)
 P = block.DialogPrm(1).Data;
 if isfield(P.lqr, 'xi_max')
+    xim = P.lqr.xi_max(:);      % column (scalar or per-axis) — no implicit expansion
     xi = block.ContStates.Data(1:3);
-    free = (abs(xi) < P.lqr.xi_max) | (sign(e) ~= sign(xi));
+    free = (abs(xi) < xim) | (sign(e) ~= sign(xi));
     e = e .* free;                  % integrate only inside the box or inward
 end
 F  = block.DialogPrm(3).Data;

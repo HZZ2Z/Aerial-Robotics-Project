@@ -135,7 +135,7 @@ add_block('simulink/Sources/Step', A('fixup'), 'Time', 'fix_loss_t1', 'Before', 
 add_block('simulink/Math Operations/Sum', A('fixsum'), 'Inputs', '+++', ...
     'Position', [700 815 730 855]);
 add_block('simulink/Sinks/To Workspace', A('fix_log'), 'VariableName', 'gnss_fix', ...
-    'Position', [820 815 910 845]);
+    'Position', [745 815 835 845]);
 
 add_block('simulink/Sinks/Terminator', A('termT'), 'Position', [430 250 450 270]);
 % zone: kalman filter + its input path (above sensors)
@@ -147,6 +147,10 @@ add_block('simulink/Signal Routing/Mux', A('kfin'), 'Inputs', '2', ...
     'Position', [930 180 945 270]);
 add_block('simulink/User-Defined Functions/Level-2 MATLAB S-Function', A('kf'), ...
     'FunctionName', 'kf_sfun', 'Parameters', 'kfmdl', 'Position', [1240 300 1360 430]);
+add_block('simulink/Sinks/Terminator', A('termKF'), 'Position', [1375 260 1395 280]);
+add_line(mdl, 'kf/2', 'termKF/1', 'autorouting', 'on');   % kf output 2 = covariance
+                                                          % diag readout, unused
+                                                          % (P(t) propagated offline)
 
 % zone: kf output selectors + estimated-state mux
 add_block('simulink/Signal Routing/Selector', A('sel_p'), 'Indices', '[1 2 3]', ...
