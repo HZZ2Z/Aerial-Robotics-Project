@@ -14,7 +14,8 @@ SOURCES = [  # controlled source files from the frozen commit
 ]
 ARTIFACTS = [  # generated deliverables (batch-dependent)
     "report/main.pdf", "report/main.tex", "report/metrics_macros.tex",
-    "report/metrics_table.tex", "report/figs/",
+    "report/metrics_table.tex", "report/rho_table.tex", "report/gains_table.tex",
+    "report/figs/",
 ]
 RESULTS_KEEP = ["metrics.json"]  # structured metrics ride along; raw runs stay local
 

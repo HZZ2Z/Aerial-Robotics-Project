@@ -52,7 +52,7 @@ CONTENTS
 
 REQUIREMENTS
   MATLAB R2025b (R2023b+ works), Simulink, Control System Toolbox (lqr, are).
-  Fixed-step ode4 at 1 ms; ~45 min for main('full') on a typical laptop.
+  Fixed-step ode4 at 1 ms; main('full') measured at 80.7 min on the development machine (i7-class laptop).
 
 RUN
   1. Open MATLAB, cd to this folder.

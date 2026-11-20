@@ -3,6 +3,8 @@
 % P.kf.mode (rw9: qa/qd; ou_bias12: qa/qf/qs), on the wind scenario.
 t_all = tic;
 P = params();
+P.kf.mode = 'rw9';   % part A is a 9-dim check: pin the mode explicitly so the
+                     % linear check below does not depend on params' default
 [~, ~, Ks, ~] = lqr_design(P);  K = Ks{3};   % rho = 10 (flight config)
 [~, ~, ~, ~, ~, ~, ~, mdl] = kf_design(P);
 mdl = rmfield(mdl, setdiff(fieldnames(mdl), {'mode','nx','tau','A','B','C','Tc', ...

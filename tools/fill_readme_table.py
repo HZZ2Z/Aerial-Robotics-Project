@@ -24,8 +24,8 @@ def main(batch):
     start = src.index('| Mode | Scenario |')
     end = src.index('\n\n*', start)
     src = src[:start] + table + src[end:]
-    src = src.replace('<!-- RESULTS_TABLE_PLACEHOLDER: filled from results/<batch>/metrics.json by P5 -->',
-                      '<!-- filled from results/%s/metrics.json -->' % batch)
+    src = re.sub(r'<!-- (?:RESULTS_TABLE_PLACEHOLDER: )?filled from results/[^\n]+/metrics\.json(?: by P5)? -->',
+                 f'<!-- filled from results/{batch}/metrics.json -->', src)
     open(p, 'w', encoding='utf-8', newline='\n').write(src)
     print('README table filled from', batch)
 

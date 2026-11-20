@@ -15,7 +15,7 @@
 
 \title{Trajectory Tracking of a Quadrotor in Wind:\\ LQR Control and Kalman-Filter Navigation with RTK GNSS}
 
-\author{\IEEEauthorblockN{Team: [Member 1, ID]\quad [Member 2, ID]\quad [Member 3, ID]}
+\author{\IEEEauthorblockN{Team: Wang Zihe}
 \IEEEauthorblockA{Aerial Robotics (MSc), Project 2026\\ Prof.~C.~Silvestre}}
 
 \maketitle
@@ -26,10 +26,12 @@ mission---take-off, two figure-eight laps and landing---in constant wind with ra
 gusts, using only AHRS rate gyros at 200~Hz and an RTK GNSS receiver at 50~Hz. A single
 multivariable linear quadratic regulator (LQR) with integral action is designed on the
 15-state linearisation of the rigid-body dynamics about hover, with torques mapped through
-the exact Euler-angle kinematics. Navigation uses a 12-state two-time-scale steady-state
-Kalman filter---an OU gust state and a slow random-walk bias augmenting the course
-nine-state baseline---with fix-status gains and a soft re-acquisition blend. A per-axis
-integrator clamp removes the estimator-drift windup that drives the RTK-outage transient.
+the exact Euler-angle kinematics. Navigation uses the course nine-state steady-state
+Kalman filter---position, velocity and a random-walk disturbance---with fix-status gains
+and a hard re-acquisition switch; a documented 12-state two-time-scale extension (OU gust
+state and slow bias, soft re-acquisition blend) is reported as an extended comparison. A
+per-axis integrator clamp removes the estimator-drift windup that drives the RTK-outage
+transient.
 Estimated-state flight is evaluated over a ten-run core matrix (nominal, wind, 5~s RTK
 outage, model uncertainty) at a 1~ms step: the mission is tracked with $\posRMSwind$~m RMS
 3-D error in wind, the RTK outage costs $\posRMSrtk$~m RMS, all scenarios stay inside the
@@ -178,8 +180,8 @@ selected for all reported runs on \emph{constraint} grounds: with the corrected 
 field, the estimated-state RTK-outage transient at $\rho=1$ drives the high-bandwidth
 feedback into torque-saturation cycling and a $36.1^\circ$ tilt peak---violating the
 $35^\circ$ course limit (diagnostic run, identical tuning)---whereas $\rho=10$ with the
-two-time-scale estimator and the bounded integrator of this section keeps every core
-scenario below $35^\circ$ (worst case $\tiltRtk^\circ$) at a $7.8\,\%$ tracking cost
+nine-state steady-state estimator and the bounded integrator of this section keeps every
+core scenario below $35^\circ$ (worst case $\tiltRtk^\circ$) at a $7.8\,\%$ tracking cost
 (\figurename~\ref{fig:rho}, \tabref{tab:rho}). The gain $K$ has the chain-decoupled zero pattern of
 Section~II-D: $\delta T$ is driven only by the $z$-chain, $n_x$ by the $y$-roll chain and
 $n_y$ by the $x$-pitch chain, $n_z$ by the yaw chain. Recovery from a 1~m initial position
@@ -205,8 +207,9 @@ windup while leaving legitimate compensation untouched---the $x/y$ bounds are si
 the outage windup ($0.55$/$0.47$~m\,s per axis), and the $z$ bound is sized above the
 $0.99$~m\,s steady demand of the mass-error scenario ($+20\,\%$ mass), whose hover offset
 would otherwise degrade from $0.09$ to $0.32$~m. On the frozen seed the clamp lowers the
-estimated RTK-outage RMS from $0.208$~m (rw9, hard switch, unbounded) to $\posRMSrtk$~m and is
-the single most effective control-side lever found in the tuning campaign; every scalar
+estimated RTK-outage RMS from $\posRMSrtkUnbounded$~m (in-batch ablation with the clamp
+removed) to $\posRMSrtk$~m and is the single most effective control-side lever found in
+the tuning campaign; every scalar
 re-weighting of the same channels ($q_a$, $\xi_{\max}$ as a scale, $e_{\max}$,
 $\eta_{\max}$, $\Delta T_{\max}$) trades tilt against tracking at a worse exchange rate.
 
@@ -291,10 +294,10 @@ filter Riccati equation \cite{K60} $AP+PA^\top+Q_9-PC^\top R^{-1}CP=0$, computed
 mode; the receiver reports whether the RTK fix is valid and the filter switches between the
 RTK gain ($\sigma=2/4$~cm) and the degraded gain ($\sigma=0.5/1$~m) accordingly, with $L=0$
 during a complete outage (prediction only). The estimation-error poles of $A-LC$ are
-stable in both modes by construction. The course baseline uses a hard switch; the reported
-tuning applies a 3~s soft re-acquisition blend instead---the blend recovers a small RMS
-gain while the outage transient itself is unaffected, because it occurs \emph{during} the
-outage, not at re-acquisition. The error covariance is
+stable in both modes by construction. The delivered configuration uses the course hard
+switch; a 3~s soft re-acquisition blend is a documented variant that recovers a small RMS
+gain at re-acquisition while the outage transient itself is unaffected, because it occurs
+\emph{during} the outage, not at re-acquisition. The error covariance is
 \emph{propagated} offline with the same schedule the filter actually used,
 \begin{equation}
 \dot P=(A-LC)P+P(A-LC)^\top+Q+L\,R(t)\,L^\top,\qquad P(0)=0,
@@ -308,24 +311,36 @@ descriptively rather than judged as independent white samples.
 
 \emph{Tuning rationale and verification order.} The process-noise intensities
 $(q_a,q_d)$ are the only free tuning knobs of the rw9 baseline; they were swept on the
-wind scenario with every other factor fixed (seed, mission, solver step). The sweep is
-flat: mission position RMS varies between 0.089 and 0.099~m over
+wind scenario with every other factor fixed (seed, mission, solver step, clamp, hard
+switch). The sweep is
+flat: mission position RMS varies between 0.105 and 0.111~m over
 $q_a\in\{0.5,1,2\}\times q_d\in\{0.3,1,3\}$, so the operating point was selected inside
 that flat optimum by the tilt constraint of Section~III ($q_a=0.5$, $q_d=0.3$), not by
 the tracking metric. Before any nonlinear number was interpreted, the statistics
 machinery itself was calibrated on the model-matched linear problem
-(ANEES $9.28$, coverage $99.4\,\%$); the innovation mean over the RTK-good segments of
+(ANEES $9.20$, coverage $99.4\,\%$); the innovation mean over the RTK-good segments of
 the reported runs is below $2$~cm per axis against a $3\sigma$ bound of $6$--$12$~cm,
 consistent with the finite-bandwidth measurement approximation.
 
-The \emph{delivered} tuning uses the documented extension (`ou\_bias12'), which splits
-$d$ into an OU gust state and a slow random-walk bias with intensities
-$(q_a,q_f,q_s)=(0.5,\,0.75,\,0.2)$: the OU state owns the fast gust path (pole matched to
-the wind model) and the slow bias state absorbs model error at $\rho=10$, where the rw9
-random walk must cover both roles with one intensity. On the frozen seed this lowers the
-estimated RTK-outage RMS from $0.208$~m (rw9) to $\posRMSrtk$~m and the plain-wind RMS from
-$0.122$~m to $\posRMSwind$~m, with every core scenario inside the tilt limit; the rw9 baseline
-remains the course-required reference and is reported alongside in the tuning sweeps.
+The \emph{delivered} tuning is the rw9 operating point above. The documented extension
+(`ou\_bias12') splits $d$ into an OU gust state and a slow random-walk bias with
+intensities $(q_a,q_f,q_s)=(0.5,\,0.75,\,0.2)$: the OU state owns the fast gust path (pole
+matched to the wind model) and the slow bias state absorbs model error at $\rho=10$,
+where the rw9 random walk must cover both roles with one intensity. On a frozen extension
+batch with identical seeds, mission and clamp (\texttt{full\_20261120\_054523}) the
+extension reports a wind-scenario RMS of $0.113$~m and nominal $0.029$~m against the
+delivered $\posRMSwind$ and $\posRMSnominalE$~m here (directly comparable: no fix
+transitions occur in these scenarios); its degraded-accuracy RMS is $0.193$~m against
+$\posRMSrtk$~m, where the two configurations additionally differ in the re-acquisition
+policy (\tabref{tab:gains} lists the delivered parameters). The rw9 baseline remains the
+delivered configuration and the 12-state filter is reported as an extension.
+
+\begin{table}[t]
+\centering
+\caption{Delivered controller and estimator parameters, exported from the frozen batch.}
+\label{tab:gains}
+\resizebox{\columnwidth}{!}{\input{gains_table.tex}}
+\end{table}
 
 \begin{figure}[t]
 \centering
@@ -356,7 +371,7 @@ step + filtered gusts) is one signal wired to both the plant and the log; every 
 the continuous true signal plus band-limited white noise of spectral density $r$ held on a
 fixed grid. One entry point (\texttt{main('full')}) rebuilds the models, runs every
 experiment behind this paper and regenerates every figure and table; every number in this
-paper comes from the frozen batch \texttt{full\_20261120\_054523} (seed 1729) via
+paper comes from the frozen batch \texttt{\batchId} (seed 1729) via
 auto-generated \LaTeX{} macros, and the README reports the same values under the same
 rounding.
 
@@ -370,6 +385,16 @@ errors, the norm of the mean hover offset $\mathbf{b}$ over the timeline-derived
 windows, the estimation RMS (position/velocity/disturbance) for the estimated runs, the
 maximum true tilt $\arccos R_{33}$ and the normalized effort. The tilt stays below the
 $35^\circ$ limit in every core run, with the largest transients under the RTK outage.
+\figurename~\ref{fig:mission} shows the wind run end-to-end: per-axis tracking error,
+attitude and heading, and the applied wind.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figs/mission_wind.png}
+\caption{Wind scenario, estimated states: per-axis tracking error (top), attitude and
+heading (middle), applied wind velocity (bottom).}
+\label{fig:mission}
+\end{figure}
 
 \begin{table}[t]
 \centering
@@ -384,7 +409,7 @@ zero-centered $\pm3\sqrt{P_{9,ii}(t)}$ bounds from \eqref{eq:prop}: coverage per
 is \covGood\,\% (good), \covDegraded\,\% (degraded), with mean NEES
 \neesGood\ (good) / \neesDegraded\ (degraded) against the \neesNx-dimensional reference.
 The machinery behind these statistics is calibrated on the model-matched linear problem:
-an ensemble of independent linear error-trajectory simulations gives ANEES $=9.28$
+an ensemble of independent linear error-trajectory simulations gives ANEES $=9.20$
 (95\,\% CI $\pm1.44$, theory 9) and per-axis 3$\sigma$ coverage 99.4\,\%. On the nonlinear
 mission the propagated covariance is conservative (NEES below 9), which we report as
 measured rather than inflating $Q$ or $R$ to move the statistic.
@@ -471,14 +496,17 @@ analytically at static hover ($d=[k_d v_w/m,0,0]$) before any performance compar
 \emph{Complete GNSS loss:} with all position updates removed for 1~s / 5~s the
 model-based prediction drifts $\driftOne$ / $\driftFive$~m at outage end
 (\figurename~\ref{fig:nofix}); the fix status returns to RTK-good immediately after the
-window ($[t_0,t_1)$ semantics). Bridging longer outages would require a velocity-grade
+window ($[t_0,t_1)$ semantics). With the hard switch the 5~s case recovers: after a
+large re-acquisition transient (tilt peak $\tiltNofixFive^\circ$, above the course tilt
+limit---reported as measured) the loop regains the reference and completes the mission;
+bridging longer outages would require a velocity-grade
 sensor (\eg optical flow plus a barometer or a second GNSS constellation with inertial
 dead-reckoning).
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figs/nofix.png}
-\caption{Complete GNSS loss: drift during and after the outage.}
+\caption{Complete GNSS loss: estimation drift and true tilt through landing.}
 \label{fig:nofix}
 \end{figure}
 
@@ -501,18 +529,19 @@ dead-reckoning).
 A single 15-state integral LQR with the exact Euler torque mapping tracks the full
 inspection mission with $\posRMSwind$~m RMS 3-D error under the complete wind field using
 estimated states, inside all course limits (tilt $<35^\circ$, thrust/torque within
-saturation). The delivered estimator is the 12-state two-time-scale steady-state Kalman
-filter (OU gust + slow bias) with two fix-status gains and a soft re-acquisition blend; it
-estimates position to $\posRMSnominalE$~m RMS class accuracy and the physical disturbance
+saturation). The delivered estimator is the course nine-state steady-state Kalman filter
+with two fix-status gains and a hard re-acquisition switch; it
+achieves $\posRMSnominalE$~m RMS nominal tracking error and estimates the physical disturbance
 to $\estDwind$~m/s$^2$ RMS in wind; its
-consistency was validated first on the model-matched linear problem (ANEES $9.28$,
+consistency was validated first on the model-matched linear problem (ANEES $9.20$,
 coverage $99.4\,\%$) and then reported honestly on the nonlinear mission, where the
 propagated covariance is conservative. The integral action---bounded by the per-axis
 integrator clamp that removes the RTK-outage windup---removes the constant-wind hover
 bias ($\hovBiasOn$ vs $\hovBiasOff$~m ablated), and the disturbance feed-forward bonus
 improves the wind-scenario tracking RMS from $\ffOff$~m to $\ffOn$~m. All numbers, figures and tables of this paper are
-generated from a single frozen batch by one entry point; the course nine-state baseline
-with a hard gain switch is reported alongside as the reference configuration.
+generated from a single frozen batch (\texttt{\batchId}) by one entry point; the
+12-state two-time-scale extension with a soft re-acquisition blend is reported alongside
+from a separately frozen batch.
 
 \bibliographystyle{IEEEtran}
 \begin{thebibliography}{9}
