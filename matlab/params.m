@@ -78,7 +78,10 @@ P.lqr.nmax   = [0.5; 0.5; 0.1];
 P.lqr.rhos   = [0.1 1 10];   % the three required weightings
 
 % --- Kalman filter (tunable; set in kf_design) ---
-P.kf.mode          = 'ou_bias12';  % course baseline 'rw9'; ou_bias12 = documented extension
+% Submission baseline = course nine-state 'rw9' with hard RTK gain switch;
+% ou_bias12 (nx = 12) is the documented extension, kept for the paper's
+% extended comparison (results/full_20261120_054523).
+P.kf.mode          = 'rw9';
 P.kf.qa            = 0.5;    % disturbance-of-acceleration intensity scale
 P.kf.qd            = 0.3;    % rw9 random-walk disturbance intensity
 % qa/qd flight tuning is constraint-driven: at qa=1/qd=1 the estimated RTK-outage
@@ -87,5 +90,6 @@ P.kf.qd            = 0.3;    % rw9 random-walk disturbance intensity
 % the limit (max 32.3 deg) at negligible tracking cost (test_kf sweep is flat).
 P.kf.qf            = 0.75;   % ou_bias12 gust (OU) intensity, tau = P.wind.tau
 P.kf.qs            = 0.2;    % ou_bias12 slow bias (random walk) intensity
-P.kf.reacq_blend_s = 3.0;    % 0: hard gain switch (course baseline); >0: soft re-acq [s]
+P.kf.reacq_blend_s = 0;      % 0: hard gain switch (course baseline, submission
+                             % default); >0: soft re-acq [s] (ou_bias12 experiments)
 end

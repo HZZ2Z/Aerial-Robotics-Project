@@ -66,6 +66,16 @@ end
 % ten core scenarios (the course matrix)
 T = run_scenarios(P, K, mdl, struct('execution_id', eid));
 
+% integrator-clamp ablation diagnostic: identical to est_rtk_lost but with
+% the per-axis integrator clamp removed, so the clamp's effect is quantified
+% inside the frozen batch instead of citing a diagnostic from an older one
+Pu = P; Pu.lqr.xi_max = [inf inf inf];
+rtkun = run_closed(Pu, K, struct('use_est', 1, 'use_Qapprox', 0, 'ff_wind', 0), mdl, ...
+    struct('wind_mode', 'mean_gust', 'fix_loss', [20 25], 'execution_id', eid, ...
+    'case_id', 'rtk_unbounded'));
+fprintf('clamp ablation rtk_unbounded | posRMS %.3f m | tilt %.1f deg\n', ...
+    metrics(rtkun, Pu, mdl).pos_rms, metrics(rtkun, Pu, mdl).tilt_max*180/pi);
+
 % constant-wind hover: integral action vs integral ablation
 Ph = P; Ph.mis.mode = 'hover_validation';
 Fh = struct('use_est', 0, 'use_Qapprox', 0, 'ff_wind', 0);
@@ -115,9 +125,9 @@ for sd = hold_seeds
 end
 
 fprintf('== 5/6 figures, animation, metrics export ==\n');
-S = struct('eid', eid, 'P', P, 'Ks', {Ks}, 'cl', {cl}, 'T', {T}, 'rho', {rho}, ...
-    'hov', hov, 'qex', qex, 'qap', qap, 'ff', ff, 'nf', nf, 'dt2', dt2, ...
-    'holdout', holdout);
+S = struct('eid', eid, 'P', P, 'Ks', {Ks}, 'cl', {cl}, 'mdl', {mdl}, 'T', {T}, ...
+    'rho', {rho}, 'hov', hov, 'qex', qex, 'qap', qap, 'ff', ff, 'nf', nf, ...
+    'dt2', dt2, 'holdout', holdout, 'rtkun', {rtkun});
 make_figures(S);
 animate_mission(T(find(strcmp({T.case_id}, 'est_wind'))).o, P, 'mission_anim.mp4');
 export_results(S);

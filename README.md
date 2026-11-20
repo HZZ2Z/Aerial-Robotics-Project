@@ -7,7 +7,7 @@
 *Aerial Robotics (MSc) · Project 2026 · Prof. C. Silvestre*
 
 ![MATLAB](https://img.shields.io/badge/MATLAB-R2025b-orange?logo=mathworks&logoColor=white)
-![Simulink](https://img.shields.io/badge/Simulink-23b?logo=mathworks&logoColor=white)
+![Simulink](https://img.shields.io/badge/Simulink-R2025b-orange?logo=mathworks&logoColor=white)
 ![Control](https://img.shields.io/badge/control-multivariable%20LQR-2563eb)
 ![Estimation](https://img.shields.io/badge/estimation-9--state%20steady--state%20Kalman%20filter-059669)
 ![Reproducible](https://img.shields.io/badge/one--click%20reproduction-main.m-f59e0b)
@@ -32,6 +32,40 @@ Green ellipse: 1-σ horizontal covariance from the propagated P(t) (eig of P_xy)
 
 </div>
 
+## 🏁 Key results — estimated-state flight (frozen batch, seed 1729)
+
+| Scenario | RMS 3-D error | Note |
+|:---------|--------------:|:--|
+| nominal | **0.029 m** | hover + two figure-eight laps |
+| wind + gusts | **0.116 m** | 2 m/s mean wind + OU gusts |
+| 5 s RTK degraded | **0.196 m** | peak error 0.951 m during the outage |
+
+**All 10 core scenarios stay inside the course tilt limit — worst case 31.6° / 35°** (thrust
+and torques within saturation). The full matrix, estimator-consistency statistics and the
+five holdout seeds are in [Results](#-results--10-run-core-matrix-seed-1729); the
+complete-GNSS-loss bonus case is reported honestly in the paper (large re-acquisition
+transient, mission recovered).
+
+## 🚀 Quick start
+
+```matlab
+% verified on MATLAB R2025b + Simulink + Control System Toolbox (R2023b+ works)
+main('quick')   % ~5 min: build + design + nominal/wind sanity runs
+main('full')    % 80.7 min measured here: every experiment behind the paper —
+                % core matrix, ρ comparison, bonus runs, holdout seeds, step-size
+                % check — regenerating every figure, the metrics export and the
+                % animation in a NEW results/<execution_id>/ batch
+```
+
+Every full run writes to a fresh `results/<execution_id>/` — nothing from a previous
+batch is overwritten, and reruns never collide (`run_id = execution_id/case_id`).
+
+## 📄 Paper
+
+The IEEE-style report (6 pages, same frozen batch): [`report/main.tex`](report/main.tex) ·
+compiled [`report/main.pdf`](report/main.pdf). Every number in the paper is auto-generated
+from `results/full_20261120_165230/metrics.json` via LaTeX macros.
+
 ---
 
 ## ✨ Highlights
@@ -44,10 +78,10 @@ Green ellipse: 1-σ horizontal covariance from the propagated P(t) (eig of P_xy)
   $n = JQ^{-1}(\ddot\eta_{cmd} - \dot Q\,\omega) + \omega\times J\omega$, not the
   $Q \approx I$ small-angle shortcut.
 - **Course nine-state Kalman filter** `[p; v; d]` as the formal baseline, with two
-  steady-state gains switched by the RTK fix status (hard switch; 1.5 s soft blend and a
+  steady-state gains switched by the RTK fix status (hard switch; a 3 s soft blend and a
   12-state two-time-scale model kept as documented extensions).
 - **Honest validation**: analytic linearisation vs numerical Jacobian (5·10⁻¹²), a
-  model-matched linear calibration of the statistics (ANEES 9.28, CI ±1.44), zero-centered
+  model-matched linear calibration of the statistics (ANEES 9.20, CI ±1.44), zero-centered
   ±3σ bounds from the **propagated** P(t) — never error-centered — and five independent
   holdout seeds for the key scenarios.
 
@@ -94,7 +128,7 @@ applied thrust and logged alongside.*
 
 ## 📊 Results — 10-run core matrix (seed 1729)
 
-<!-- filled from results/full_20261120_054523/metrics.json -->
+<!-- filled from results/full_20261120_165230/metrics.json -->
 
 | Mode | Scenario | RMS 3-D error [m] | Max 3-D error [m] | Hover offset ‖b‖ [m] | est. p/v/d RMS | Max tilt | effort U_RMS |
 |:-----|:---------|-----:|-----:|-----:|:----:|-----:|-----:|
@@ -103,52 +137,32 @@ applied thrust and logged alongside.*
 | ideal | RTK degraded 5 s | 0.102 | 0.248 | 0.089 | N/A | 17.1 | 0.11 |
 | ideal | uncert. J +20% | 0.112 | 0.391 | 0.082 | N/A | 16.9 | 0.41 |
 | ideal | uncert. J −20% | 0.112 | 0.391 | 0.080 | N/A | 16.6 | 0.40 |
-| estimated | nominal | 0.029 | 0.114 | 0.029 | 0.025/0.17/0.20 | 15.5 | 0.17 |
-| estimated | wind | 0.113 | 0.260 | 0.092 | 0.025/0.17/0.30 | 17.4 | 0.18 |
-| estimated | RTK degraded 5 s | 0.193 | 0.924 | 0.092 | 0.108/0.25/0.32 | 34.0 | 0.25 |
-| estimated | uncert. J +20% | 0.133 | 0.522 | 0.087 | 0.024/0.17/0.47 | 17.1 | 0.45 |
-| estimated | uncert. J −20% | 0.134 | 0.522 | 0.084 | 0.024/0.17/0.47 | 16.6 | 0.44 |
+| estimated | nominal | 0.029 | 0.112 | 0.027 | 0.024/0.16/0.16 | 15.4 | 0.17 |
+| estimated | wind | 0.116 | 0.266 | 0.090 | 0.024/0.16/0.31 | 17.4 | 0.18 |
+| estimated | RTK degraded 5 s | 0.196 | 0.951 | 0.090 | 0.106/0.24/0.32 | 31.6 | 0.24 |
+| estimated | uncert. J +20% | 0.141 | 0.555 | 0.082 | 0.024/0.16/0.50 | 17.0 | 0.45 |
+| estimated | uncert. J −20% | 0.141 | 0.555 | 0.078 | 0.024/0.16/0.50 | 16.5 | 0.44 |
 
 *Both uncertainty scenarios are mass +20 % with a 20 ms input delay; inertia ±20 %.
 All numbers come from the frozen batch `results/<execution_id>/metrics.json` — same
 source as the paper's table.*
 
-## 🎛 Estimator Tuning (historical record)
-
-The 12-state two-time-scale filter, the soft re-acquisition blend and the
-process-noise operating points were explored in an earlier **20-run autoresearch sweep on
-the pre-fix windfield** (single dev seed). That windfield had the gust generator wired to
-the plant but **not** the mean wind, and a 0.5 s effective OU time constant — so those
-RMS numbers are **historical only** and are not comparable with the current results
-(see [docs/autoresearch/HISTORY.md](docs/autoresearch/HISTORY.md) and
-[docs/optimization-plan/PROGRESS.md](docs/optimization-plan/PROGRESS.md)). The current
-baseline sweeps the parameters that are actually consumed by the active model mode:
-`test_kf` (rw9: q_a × q_d; ou_bias12: q_a/q_f/q_s).
-
-<div align="center">
-<img src="docs/tuning.png" alt="autoresearch tuning curves (historical)" width="860"/>
-</div>
-
 ## 🖼 Figure Gallery
 
 <table>
 <tr>
-<td width="50%"><img src="report/figs/est_err.png"/><br><sub>Position estimation error inside zero-centered ±3σ bounds from propagated P(t); shaded: degraded/no-fix</sub></td>
-<td width="50%"><img src="report/figs/dhat.png"/><br><sub>D̂ vs physical disturbance truth d_model (wind drag + model error); wind-drag component dashed</sub></td>
-</tr>
-<tr>
-<td width="50%"><img src="report/figs/rtk_outage.png"/><br><sub>Error growth during the 5 s RTK outage vs propagated covariance</sub></td>
-<td width="50%"><img src="report/figs/lqr.png"/><br><sub>Closed-loop eigenvalues vs ρ, gain structure |K|, 1 m step recovery</sub></td>
-</tr>
-<tr>
 <td width="50%"><img src="report/figs/traj3d.png"/><br><sub>3-D + top view: reference, true and estimated trajectories</sub></td>
-<td width="50%"><img src="report/figs/holdout.png"/><br><sub>Five independent holdout seeds reproduce the two key estimated scenarios</sub></td>
+<td width="50%"><img src="report/figs/rtk_outage.png"/><br><sub>Error growth during the 5 s RTK outage vs propagated covariance</sub></td>
+</tr>
+<tr>
+<td colspan="2"><img src="report/figs/mission_wind.png" width="560"/><br><sub>Wind run end-to-end: per-axis tracking error, attitude & heading, applied wind</sub></td>
 </tr>
 </table>
 
-*More in [`report/figs/`](report/figs): attitude & heading, thrust/torque commands, wind
-profile, position errors, ρ comparison, hover integral ablation, feed-forward, GNSS
-outages, Q comparison, step-size sensitivity.*
+*More in [`report/figs/`](report/figs): estimation error with ±3σ bounds, disturbance
+estimate vs truth, attitude & heading, thrust/torque commands, wind profile, position
+errors, ρ comparison, hover integral ablation, feed-forward, GNSS outages, Q comparison,
+step-size sensitivity.*
 
 ## ✅ Built-in Verification
 
@@ -164,7 +178,7 @@ assert them on every run):
 | (A, C) observable: position / velocity-only (rw9) | rank 9 / 6 |
 | Wind: `none` applies exactly 0; mean step 2 m/s at t = 15 s; OU τ = 2 s | ✓ (impulse 1/e at 2.00 s + 3-seed ensemble) |
 | GNSS fix status [t₀,t₁) semantics: 1 → 0 (degraded) / −1 (no fix) → 1 | ✓ |
-| Statistics machinery: linear model-matched ensemble ANEES / coverage | 9.28 (CI ±1.44) / 99.4 % |
+| Statistics machinery: linear model-matched ensemble ANEES / coverage | 9.20 (CI ±1.44) / 99.4 % |
 | Disturbance identity a_true = ua_meas + d_model + d_input_noise | < 10⁻⁹ every run |
 | Run-to-run determinism (seeded noise streams) | bit-exact |
 
@@ -204,16 +218,7 @@ assert them on every run):
 └── tools/package_submission.py   clean deliverable ZIP packager
 ```
 
-## 🚀 Quick Start
-
-```matlab
-% MATLAB R2025b (R2023b+ works), Simulink + Control System Toolbox
-main('full')    % ~45 min: rebuilds models, runs the 10-run core matrix, the ρ
-                % comparison, control experiments, bonus runs, holdout seeds,
-                % step-size check; regenerates every figure, the metrics export
-                % and the animation in a NEW results/<execution_id>/ batch
-main('quick')   % ~5 min: build + design + nominal/wind sanity runs
-```
+## 🧪 Standalone test scripts
 
 Individual verification, each standalone:
 
@@ -225,8 +230,19 @@ test_kf       % linear statistics calibration + per-mode tuning sweep
 test_bonus    % FF sign, hover integral ablation, Q manoeuvre, GNSS outages
 ```
 
-Every full run writes to a fresh `results/<execution_id>/` — nothing from a previous
-batch is overwritten, and reruns never collide (`run_id = execution_id/case_id`).
+## 📜 Tuning history (historical record)
+
+The 12-state two-time-scale filter, the soft re-acquisition blend and the
+process-noise operating points were explored in an earlier **20-run autoresearch sweep on
+the pre-fix windfield** (single dev seed). That windfield had the gust generator wired to
+the plant but **not** the mean wind, and a 0.5 s effective OU time constant — so those
+RMS numbers are **historical only** and are not comparable with the current results
+(see [docs/autoresearch/HISTORY.md](docs/autoresearch/HISTORY.md) and
+[docs/optimization-plan/PROGRESS.md](docs/optimization-plan/PROGRESS.md)).
+
+<div align="center">
+<img src="docs/tuning.png" alt="autoresearch tuning curves (historical)" width="860"/>
+</div>
 
 ---
 

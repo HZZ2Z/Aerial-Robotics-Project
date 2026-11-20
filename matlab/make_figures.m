@@ -25,6 +25,7 @@ title('3-D mission trajectory');
 ax2 = nexttile(tl); grid on; hold on;
 plot(wind.ref(:,1), wind.ref(:,2), 'k--', 'LineWidth', 1);
 plot(wind.p(:,1), wind.p(:,2), 'b', 'LineWidth', 1);
+plot(wind.kf(:,1), wind.kf(:,2), 'r-.', 'LineWidth', 0.8);
 quiver(wind.ref(200:800:end,1), wind.ref(200:800:end,2), ...
        cos(wind.ref(200:800:end,10)), sin(wind.ref(200:800:end,10)), 0.3, 'k');
 xlabel('x North [m]'); ylabel('y East [m]'); axis equal;
@@ -62,6 +63,25 @@ plot(wind.t, wind.vw, 'LineWidth', 0.8); grid on;
 xlabel('t [s]'); ylabel('[m/s]'); legend('v_{w,x}', 'v_{w,y}', 'v_{w,z}');
 title('wind velocity applied to the plant');
 savepdf(f, fgs, 'wind');
+
+% --- fig 5b: combined mission panel (tracking error, attitude, wind) ---
+% single-column composite of figs 2/3/5 for the report; the standalone
+% versions above stay on disk for the README's figure listing.
+f = figure('Color', 'w', 'Position', [50 50 430 290]);
+tl = tiledlayout(f, 3, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
+nexttile(tl); hold on; grid on;
+plot(wind.t, wind.p(:,1) - wind.ref(:,1), wind.t, wind.p(:,2) - wind.ref(:,2), ...
+     wind.t, wind.p(:,3) - wind.ref(:,3), 'LineWidth', 0.8);
+xline(S.P.wind.t0, ':', 'HandleVisibility', 'off');
+ylabel('error [m]'); legend('x', 'y', 'z', 'Location', 'northeast');
+title('wind + gusts, estimated states: tracking error, attitude, applied wind');
+nexttile(tl); grid on;
+plot(wind.t, wind.eta*180/pi, wind.t, wind.ref(:,10)*180/pi, '--', 'LineWidth', 0.8);
+ylabel('[deg]'); legend('\phi', '\theta', '\psi', '\psi^*', 'Location', 'northeast');
+nexttile(tl); grid on;
+plot(wind.t, wind.vw, 'LineWidth', 0.8);
+xlabel('t [s]'); ylabel('[m/s]'); legend('v_{w,x}', 'v_{w,y}', 'v_{w,z}', 'Location', 'northeast');
+savepdf(f, fgs, 'mission_wind');
 
 % --- fig 6: estimation errors with ZERO-CENTERED +-3sqrt(P9_ii(t)) bounds ---
 ep = wind.kf(:,1:3) - wind.p;
@@ -176,18 +196,26 @@ title('bonus: disturbance feed-forward, wind scenario, estimated states');
 savepdf(f, fgs, 'ff');
 
 % --- fig 14: complete GNSS loss ---
-f = figure('Color', 'w', 'Position', [50 50 430 143]);
-hold on; grid on;
+f = figure('Color', 'w', 'Position', [50 50 430 220]);
+tl = tiledlayout(f, 2, 1, 'TileSpacing', 'compact');
+ax1 = nexttile(tl); hold(ax1, 'on'); grid(ax1, 'on');
+ax2 = nexttile(tl); hold(ax2, 'on'); grid(ax2, 'on');
 for w = [1 5]
     o = S.nf.(sprintf('s%d', w));
     dr = vecnorm(o.kf(:,1:3) - o.p, 2, 2);
-    win = o.t >= 19.5 & o.t <= 27;
-    plot(o.t(win), dr(win), 'LineWidth', 1, 'DisplayName', sprintf('%d s outage', w));
+    tilt = acosd(min(1, max(-1, o.R(:,9))));
+    label = sprintf('%d s outage', w);
+    plot(ax1, o.t, dr, 'LineWidth', 1, 'DisplayName', label);
+    plot(ax2, o.t, tilt, 'LineWidth', 1, 'DisplayName', label);
 end
-xline(20, ':', 'HandleVisibility', 'off'); xline(25, ':', 'HandleVisibility', 'off');
-xlabel('t [s]'); ylabel('$\Vert\hat{p} - p\Vert$ [m]', 'Interpreter', 'latex');
-legend('Location', 'best');
-title('complete GNSS loss: drift during and after the outage');
+for ax = [ax1 ax2]
+    xline(ax, [20 21 25], ':', 'HandleVisibility', 'off');
+    xlim(ax, [19.5 S.nf.s5.t(end)]);
+end
+yline(ax2, S.P.tiltmax*180/pi, '--', '35 deg limit', 'HandleVisibility', 'off');
+xlabel(ax2, 't [s]'); ylabel(ax2, 'tilt [deg]');
+ylabel(ax1, '$\Vert\hat{p} - p\Vert$ [m]', 'Interpreter', 'latex');
+legend(ax1, 'Location', 'best');
 savepdf(f, fgs, 'nofix');
 
 % --- fig 15: holdout seed validation ---
