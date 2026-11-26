@@ -1,5 +1,7 @@
 function mdl = build_course_model(P)
-%BUILD_COURSE_MODEL Complete the supplied model from its original block layout.
+%BUILD_COURSE_MODEL 基于课程提供的 quad_arch.slx 模板，通过脚本自动装配完整的 Simulink 闭环模型。
+%   包含：注入各 MATLAB Function 模块代码、设置传感器/阵风噪声种子与功率谱密度、
+%   插入执行器输入延迟、添加 Bonus 风扰平滑前馈通道，以及配置信号记录与 ode4 求解器。
 root = fileparts(fileparts(mfilename('fullpath')));
 kit = fullfile(root, 'simulink', 'student_kit');
 addpath(kit);
@@ -7,6 +9,8 @@ mdl = 'quad_arch';
 if bdIsLoaded(mdl), close_system(mdl, 0); end
 load_system(fullfile(kit, [mdl '.slx']));
 set_param(mdl, 'InitFcn', '');
+
+% 1) 向控制器、卡尔曼滤波器、GNSS 接收机与刚体动力学模块注入 MATLAB 代码
 
 chart(mdl, 'Controller/D law', [
     "function [w_dot,z_dot] = d_law(meas,x,pvd_hat,ref,z,P)"

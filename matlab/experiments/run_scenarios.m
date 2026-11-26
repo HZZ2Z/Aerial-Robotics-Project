@@ -1,6 +1,6 @@
 function results = run_scenarios(P, K, filter, options)
-%RUN_SCENARIOS Fly each of the five conditions using ideal and estimated feedback.
-%   options.mode = 'quick' selects ideal_nominal and est_rtk_lost from the full matrix.
+%RUN_SCENARIOS 运行课程要求的 5 种典型工况 x 2 种反馈模式（理想真值 vs 卡尔曼估计），共 10 组核心仿真。
+%   options.mode = 'quick' 时仅运行 ideal_nominal 与 est_rtk_lost 两组快速验证。
 if nargin < 4
     options = struct();
 end
@@ -15,7 +15,7 @@ if ~isfield(options,'seed')
 end
 quick = strcmp(options.mode,'quick');
 
-% Condition, wind, RTK accuracy interval, true mass, true inertia, input delay.
+% 核心工况矩阵：工况名 | 风场模式 | RTK 失锁区间 | 质量倍率 | 惯量倍率 | 输入延迟 [s]
 conditions = {
     'nominal',     'none',      [inf inf],      1,   1,   0
     'wind',        'mean_gust', [inf inf],      1,   1,   0

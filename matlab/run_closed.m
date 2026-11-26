@@ -1,5 +1,5 @@
 function out = run_closed(P, K, F, M, opts)
-%RUN_CLOSED Simulate the completed teacher model with scenario-local parameters.
+%RUN_CLOSED 在给定工况参数下运行 Simulink 闭环仿真，并整理输出日志与物理真值分解。
 if nargin < 5, opts = struct(); end
 o = setdef(opts, 'wind_mode','none','fix_loss',[inf inf],'no_fix',false, ...
     'm_scale',1,'J_scale',1,'in_delay',0,'seed',P.noise.seed_base, ...
@@ -13,6 +13,7 @@ in = Simulink.SimulationInput(mdl);
 in = in.setVariable('P',C).setVariable('REF',REF);
 so = sim(in);
 
+% 1) 提取 Simulink 记录的各路时序信号
 x = so.log_state.Data;
 meas = so.log_meas.Data;
 out = struct('t',so.log_state.Time,'ref',so.log_ref.Data, ...
@@ -27,6 +28,8 @@ out.p_est = out.kf(:,1:3);
 out.u_delayed = out.Tn;
 out.R = rotation_rows(out.eta);
 Rmeas = rotation_rows(out.eta_meas);
+
+% 2) 分解物理扰动真值: d_model = a_true - ua_ideal（含风阻、质量误差与执行器延迟）
 out.d_wind = -P.kd/C.m_true*(out.v-out.vw);
 ge3 = [0 0 P.g];
 out.a_true = -out.Tn(:,1)/C.m_true.*out.R(:,7:9) + ge3 + out.d_wind;
@@ -36,16 +39,21 @@ out.d_model = out.a_true-out.ua_ideal;
 out.d_input_noise = out.ua_ideal-out.ua_meas;
 out.d_effective = out.a_true-out.ua_meas;
 out.resid = max(abs(out.d_effective-out.d_model-out.d_input_noise),[],'all');
+
+% 3) 校验仿真完整性与执行器物理饱和约束
 assert(all(isfinite(x),'all') && all(isfinite(out.kf),'all') && ...
     abs(out.t(end)-o.tfinal) < o.dt/2, 'Simulation produced an incomplete or invalid log.');
 assert(all(out.Tn(:,1) >= -1e-9 & out.Tn(:,1) <= P.Tmax+1e-9) && ...
     all(abs(out.Tn(:,2:4)) <= P.lqr.nmax'+1e-9,'all'), 'Applied actuator limit violated.');
+
+% 4) 若启用估计反馈，离线传播误差协方差 P9(t) 用于 +/-3sigma 与 NEES 检验
 if F.use_est
     out.P_out = propagate_covariance(out,M);
 else
     out.P_out = [];
 end
 
+% 5) 按批次目录保存单次运行结果
 if ~isempty(o.execution_id)
     d = fullfile(root,'results',o.execution_id,o.case_id);
     if ~isfolder(d), mkdir(d); end

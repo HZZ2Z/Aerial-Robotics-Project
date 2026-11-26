@@ -1,11 +1,7 @@
 function M = metrics(o, P, mdl)
-%METRICS Performance metrics for one run_closed output (single definition set).
-% All estimation errors are evaluated against out.d_model = a_true - ua_ideal
-% (wind drag + mass error + actuation/delay error), NOT against the wind-drag
-% component alone. Consistency statistics use the propagated P9(t) from the
-% actual gain schedule (run_closed already stored out.P_out).
-% 3-D quantities are vector norms: pos_rms = sqrt(mean(||e||^2)) (the
-% all-coordinate RMS would be pos_rms/sqrt(3) and is never mixed in here).
+%METRICS 统一计算单次仿真运行的定量性能指标与滤波器一致性统计。
+%   包含：3D 跟踪误差（RMS 与峰值）、悬停稳态偏移、估计误差（vs 物理扰动真值 d_model）、
+%   最大倾角、归一化控制代价，以及 NEES、+/-3sigma 覆盖率与新息零均值检验。
 err = o.p - o.ref(:, 1:3);
 e3d = vecnorm(err, 2, 2);
 M.pos_rms = sqrt(mean(e3d.^2));

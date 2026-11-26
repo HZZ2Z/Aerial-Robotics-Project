@@ -1,8 +1,9 @@
 function REF = course_reference_table(P, dt, tfinal)
-%COURSE_REFERENCE_TABLE Sample the teacher's reference at every RK4 stage.
+%COURSE_REFERENCE_TABLE 在每个 RK4 半步长 (dt/2) 处预采样参考轨迹，供 Simulink From Workspace 模块查表。
 persistent cacheKey cacheRef
 h = dt/2;
 if strcmp(P.mis.mode, 'mission')
+    % 课程主任务：直接调用 student_kit 中的 mission_reference 并缓存结果
     key = [h P.g tfinal];
     if ~isequal(cacheKey, key)
         r = mission_reference(h, P.g);
@@ -15,7 +16,7 @@ if strcmp(P.mis.mode, 'mission')
     return
 end
 
-t = (0:h:tfinal)';
+% 扩展实验模式（如 q_maneuver / hover_validation）：调用 gen_ref 并数值求导前馈倾角速率/加速度
 REF = zeros(numel(t),19);
 REF(:,1) = t;
 for k = 1:numel(t)

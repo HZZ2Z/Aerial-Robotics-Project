@@ -1,11 +1,17 @@
 function [rho, hov, qex, qap, ff, nf, dt2, holdout] = run_experiments(P, K, Ks, mdl, eid, core)
-%RUN_EXPERIMENTS Comparisons and bonus cases used by the report.
+%RUN_EXPERIMENTS 运行报告与 Bonus 所需的全部对比实验、消融实验与可重复性检验：
+%   1) rho 灵敏度分析（3 组 LQR 权重 x 无风/有风）
+%   2) 积分作用消融（常风悬停时开启/关闭积分器对比，验证消除稳态静差）
+%   3) 精确运动学 Q vs 小角度近似 Q=I 对比
+%   4) Bonus 1: 卡尔曼风扰估计前馈补偿（开启 vs 关闭）
+%   5) Bonus 2: GNSS 完全失锁（1 s 与 5 s）漂移量化
+%   6) 仿真步长收敛性检查（dt/2）与 5 组盲测随机种子（holdout）稳健性验证
 ideal = struct('use_est',0,'use_Qapprox',0,'ff_wind',0);
 estimated = ideal;
 estimated.use_est = 1;
 windModes = {'none','mean_gust'};
 
-% three LQR weightings x {no wind, wind}, ideal states, everything else equal
+% 1) 三组 LQR 权重 rho = [0.1, 1, 10] 在无风与有风下的跟踪误差-控制代价权衡
 rho = cell(1, numel(Ks));
 for r = 1:numel(Ks)
     for s = 1:numel(windModes)

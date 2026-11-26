@@ -1,21 +1,14 @@
 function [A, C, Lg, Lb, Pg, Pb, ob, mdl] = kf_design(P)
-%KF_DESIGN Steady-state Kalman filter design, two model modes:
-%   'rw9'       (course baseline) x = [p; v; d] in R^9, d random walk,
-%               pdot=v, vdot = ua + d, C observes p. Rank O (position) = 9,
-%               rank O (velocity only) = 6. Tuned by P.kf.qa / P.kf.qd.
-%   'ou_bias12' (extension)     x = [p; v; df; ds] in R^12, df gust (OU,
-%               pole -1/tau), ds slow random walk. Output projection
-%               Tc*x = [p; v; df+ds]. Rank O (position) = 12, velocity 9.
-%               Tuned by P.kf.qa / P.kf.qf / P.kf.qs.
-% ua comes from commanded thrust + AHRS attitude: ua = -T/m0*R(eta_meas)*e3 + g0*e3.
-% Returns steady-state gains for RTK-good and degraded accuracy, the 9x9
-% covariance of the OUTPUT state [p; v; d_total] (Tc projection for 12-state),
-% and the observability analysis. mdl carries every matrix the filter, the
-% covariance propagation and the metrics need (single source of matrices).
+%KF_DESIGN 连续时间稳态卡尔曼滤波器设计与可观性分析，支持两种模型模式：
+%   1) 'rw9'（课程基线）: 状态 x = [p; v; d] in R^9，扰动加速度 d 建模为随机游走。
+%      p_dot = v, v_dot = ua + d, 仅观测位置 p。位置可观性秩=9，仅测速度秩=6（不可观）。
+%   2) 'ou_bias12'（扩展对比）: 状态 x = [p; v; df; ds] in R^12，含 OU 阵风 df 与慢变偏置 ds。
+%   模型加速度 ua 由指令推力与 AHRS 姿态计算: ua = -T/m0*R(eta_meas)*e3 + g0*e3。
+%   返回 RTK 正常增益 Lg、降级增益 Lb、稳态协方差 Pg/Pb 及能观性结构体 ob。
 
 switch P.kf.mode
     case 'rw9'
-        nx = 9;  tau = 0;  % d is a random walk: no OU pole
+        nx = 9;  tau = 0;  % 扰动加速度 d 为随机游走（无一阶惯性极点）
         A = [zeros(3) eye(3)  zeros(3);
              zeros(3) zeros(3) eye(3);
              zeros(3) zeros(3) zeros(3)];
@@ -32,7 +25,7 @@ switch P.kf.mode
              zeros(3) zeros(3) zeros(3)     zeros(3)];
         B = [zeros(3); eye(3); zeros(3); zeros(3)];
         C = [eye(3) zeros(3) zeros(3) zeros(3)];
-        Tc = [eye(6) zeros(6,6); zeros(3,6) eye(3) eye(3)];   % [p; v; df+ds]
+        Tc = [eye(6) zeros(6,6); zeros(3,6) eye(3) eye(3)];   % 投影到 [p; v; df+ds]
         Q  = diag([zeros(1,3), P.kf.qa^2*ones(1,3), ...
                    P.kf.qf^2*ones(1,3), P.kf.qs^2*ones(1,3)]);
         qa = P.kf.qa;  qd = 0;  qf = P.kf.qf;  qs = P.kf.qs;
@@ -40,7 +33,7 @@ switch P.kf.mode
         error('kf_design: unknown P.kf.mode %s', P.kf.mode);
 end
 
-% observability: position measurements observable, velocity-only not
+% 能观性检验：仅位置观测时满秩（完全可观），仅速度观测时降秩（位置与扰动不可观）
 Opos = [C; C*A; C*A^2; C*A^3];
 rpos = rank(Opos);
 Cvel = [zeros(3) eye(3) zeros(3, nx-6)];
@@ -50,18 +43,18 @@ fprintf('kf_design[%s]: nx=%d, rank O (position) = %d, rank O (velocity only) = 
     P.kf.mode, nx, rpos, rvel);
 assert(rpos == nx && rvel < nx);
 
-Rg = diag(P.sens.gnss.rvec);           % RTK fix
-Rb = diag(P.sens.gnss.rbad);           % fix lost
+Rg = diag(P.sens.gnss.rvec);           % RTK 固定解量测噪声强度
+Rb = diag(P.sens.gnss.rbad);           % RTK 失锁降级量测噪声强度
 
-% filter ARE:  A P + P A' + Q - P C' R^-1 C P = 0  ->  are(A', C'R^-1C, Q)
+% 求解连续时间代数 Riccati 方程 (ARE): A*P + P*A' + Q - P*C'*R^-1*C*P = 0
 PgN = are(A', C'*(Rg\C), Q);
 PbN = are(A', C'*(Rb\C), Q);
-Lg = PgN*C'/Rg;
-Lb = PbN*C'/Rb;
+Lg = PgN*C'/Rg;                        % RTK 正常稳态增益
+Lb = PbN*C'/Rb;                        % RTK 降级稳态增益
 assert(all(real(eig(A - Lg*C)) < 0), 'A-LC not Hurwitz (good)');
 assert(all(real(eig(A - Lb*C)) < 0), 'A-LC not Hurwitz (bad)');
 
-% covariance of the OUTPUT state [p; v; d_total] (9x9) for metrics/NEES
+% 映射到 9 维输出空间 [p; v; d_total] 的稳态误差协方差，用于一致性检验与 NEES
 Pg = Tc*PgN*Tc';
 Pb = Tc*PbN*Tc';
 

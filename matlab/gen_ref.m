@@ -1,17 +1,10 @@
 function [pref, vref, aref, psi, psid, psidd] = gen_ref(t, P)
-%GEN_REF C^2 reference mission trajectory, piecewise analytic.
-% Segments (all joins blended with a quintic smoothstep, hence C^2):
-%   [0,tup]            take-off climb to z=-h (quintic, zero end vel/acc)
-%   [tup,+thov]        hover at origin
-%   [+tb]              blend hover -> lemniscate entry
-%   [2 laps]           lemniscate x=a sin(Om t), y=a sin(Om t)cos(Om t)
-%   [+tb]              blend lemniscate exit -> hover at origin
-%   [thov]             hover at origin
-%   [tland]            landing climb (quintic), z: -h -> 0
-% Heading: tangent psi*=atan2(ydot*,xdot*) during the eight, 0 elsewhere,
-% angle-blended across transitions. psidd is analytic.
+%GEN_REF 生成至少 C^2 光滑的分段解析参考轨迹（用于扩展对比实验）。
+%   所有轨迹段之间均采用五次多项式 smoothstep q5 拼接，保证位置、速度、加速度与航向角二阶连续：
+%   1) 起飞爬升 -> 2) 悬停 -> 3) 平滑切入8字双纽线 -> 4) 两圈8字 -> 5) 平滑切出 -> 6) 悬停 -> 7) 降落
+%   航向角 psi* 在 8 字飞行期间保持机头 x_B 切向于轨迹: atan2(ydot*, xdot*)。
 
-% dedicated combined roll-pitch-yaw manoeuvre mode (task 3 Q comparison):
+% 模式 A：专用滚转-俯仰-偏航联合机动（用于对比精确 Q 与近似 Q=I）
 % climb 3 s, hover, simultaneous diagonal position step (0,0)->(2,2) and
 % 90 deg heading change over [5,7], hold, return over [9,11], hover, land.
 if strcmp(P.mis.mode, 'q_maneuver')

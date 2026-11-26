@@ -1,8 +1,7 @@
 function anim = animate_mission(o, P, fname)
-%ANIMATE_MISSION 3-D animation: vehicle, reference, true and estimated
-% trajectories, horizontal 1-sigma covariance ellipse (eig of P9(1:2,1:2),
-% covariance orientation preserved; axis lengths are 1-sigma, NOT 68%/95%).
-% Saves mp4. All data comes from the single run o (including P_out).
+%ANIMATE_MISSION 生成 3-D 飞行任务动画（导出 MP4）：
+%   同步展示参考轨迹、真实轨迹、卡尔曼估计轨迹、带机头朝向的四旋翼机体，
+%   以及由水平位置协方差矩阵特征分解得到的 1-sigma 误差椭圆。
 root = fileparts(fileparts(mfilename('fullpath')));
 if nargin < 3 || isempty(fname), fname = 'mission_anim.mp4'; end
 
