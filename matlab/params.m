@@ -9,7 +9,7 @@ P.g   = 9.81;                      % gravity [m/s^2]
 P.Tmax    = 24;                    % thrust limit [N]
 P.nmaxxy  = 0.5;                   % roll/pitch torque limit [N m]
 P.nmaxz   = 0.1;                   % yaw torque limit [N m]
-P.tiltmax = 35*pi/180;             % max tilt [rad]
+P.tiltmax = 0.61;                  % max tilt [rad]
 P.kd  = 0.25;                      % linear drag coefficient [N s/m]
 P.Ttrim = P.m*P.g;                 % hover thrust [N]
 
@@ -54,21 +54,23 @@ P.mis.a     = 3;        % lemniscate amplitude [m]
 P.mis.T8    = 20;       % figure-eight period [s]
 P.mis.laps  = 2;        % number of laps
 P.mis.tland = 5;        % landing time [s]
-P.mis.tb    = 3;        % polynomial blending window [s]
+P.mis.tb    = 3;        % legacy auxiliary manoeuvre blend [s]
+P.mis.phase_ramp = 4;  % total time added by the teacher's phase-rate ramps
+P.mis.end_rest = 2;    % reference ground hold [s]
+P.mis.fix_loss = [30 35];
 P.mis.mode  = 'mission';           % mission | q_maneuver | hover_validation
 P.mis.t_hv  = 45;                  % hover_validation end time [s]
 
 % --- Simulation ---
-% climb + hover + blend-in + 2 laps + blend-out + hover + land
-P.sim.tfinal = P.mis.tup + P.mis.thov + P.mis.tb + P.mis.laps*P.mis.T8 ...
-             + P.mis.tb + P.mis.thov + P.mis.tland;   % = 60 s
+P.sim.tfinal = P.mis.tup + 2*P.mis.thov + P.mis.laps*P.mis.T8 ...
+             + P.mis.phase_ramp + P.mis.tland + P.mis.end_rest;
 P.sim.dt     = 1e-3;                     % fixed solver step [s]
 
 % --- LQR (Bryson maxima; R scaled by rho) ---
 P.lqr.ximax  = 0.5;          % integral-error scale [m s]
-P.lqr.xi_max = [0.2 0.2 2.0];  % integrator clamp [m s] per axis: x/y bound outage
-                             % windup (drift integrates freely otherwise); z stays
-                             % wide for mass-error compensation (uncert hover)
+P.lqr.yaw_int_max = 20*pi/180; % heading integral scale [rad s]
+P.lqr.eps_d  = 0.05;           % dirty-derivative time constant [s]
+P.lqr.flight_rho = 10;
 P.lqr.emax   = 1.0;          % position error scale [m]
 P.lqr.vmax   = 1.0;          % velocity error scale [m/s]
 P.lqr.etamax = 20*pi/180;    % attitude error scale [rad]
@@ -78,16 +80,10 @@ P.lqr.nmax   = [0.5; 0.5; 0.1];
 P.lqr.rhos   = [0.1 1 10];   % the three required weightings
 
 % --- Kalman filter (tunable; set in kf_design) ---
-% Submission baseline = course nine-state 'rw9' with hard RTK gain switch;
-% ou_bias12 (nx = 12) is the documented extension, kept for the paper's
-% extended comparison (results/full_20261120_054523).
+% Course design: nine-state random-walk disturbance with a hard RTK gain switch.
 P.kf.mode          = 'rw9';
 P.kf.qa            = 0.5;    % disturbance-of-acceleration intensity scale
 P.kf.qd            = 0.3;    % rw9 random-walk disturbance intensity
-% qa/qd flight tuning is constraint-driven: at qa=1/qd=1 the estimated RTK-outage
-% transient amplifies the degraded-mode velocity-estimate noise through the LQR
-% (tilt 50.6 deg > 35 deg limit); qa=0.5/qd=0.3 keeps every core scenario inside
-% the limit (max 32.3 deg) at negligible tracking cost (test_kf sweep is flat).
 P.kf.qf            = 0.75;   % ou_bias12 gust (OU) intensity, tau = P.wind.tau
 P.kf.qs            = 0.2;    % ou_bias12 slow bias (random walk) intensity
 P.kf.reacq_blend_s = 0;      % 0: hard gain switch (course baseline, submission

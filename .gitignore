@@ -44,3 +44,8 @@ results/**/*.mat
 results/scratch/
 results/diag_*/
 results/legacy_*/
+
+# Local course inputs and generated submission files
+deliver/
+simulink/student_kit/
+simulink/quad_arch.slx
