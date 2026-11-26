@@ -14,9 +14,16 @@ M.pos_max = max(e3d);
 % hover windows from the actual timeline: [tup+0.5, tup+thov-0.5] and
 % [t4+0.5, t4+thov-0.5] (never the blend-in or landing segments)
 h1 = o.t > P.mis.tup + 0.5 & o.t < P.mis.tup + P.mis.thov - 0.5;
-t4 = P.mis.tup + P.mis.thov + P.mis.tb + P.mis.laps*P.mis.T8 + P.mis.tb;
+t4 = P.mis.tup + P.mis.thov + P.mis.laps*P.mis.T8 + P.mis.phase_ramp;
 h2 = o.t > t4 + 0.5 & o.t < t4 + P.mis.thov - 0.5;
 if any(h2), hsel = h2; else, hsel = h1; end
+% hover_validation mission: the dedicated constant-wind hover run reports the
+% offset over the wind-on window [35,45] s — the SAME window the paper macros
+% use, so metrics.json and \hovBiasOn/\hovBiasOff agree by construction (the
+% timeline window above lands before the wind step on this 45 s mission)
+if strcmp(P.mis.mode, 'hover_validation')
+    hsel = o.t > 35 & o.t <= 45;
+end
 M.hov_off = mean(err(hsel, :), 1);            % mean offset vector (hover bias)
 M.hov_off_norm = norm(M.hov_off, 2);
 M.hov_rms = sqrt(mean(sum(err(hsel, :).^2, 2)));   % dynamic RMS in the window
@@ -31,6 +38,9 @@ M.est_max = max(vecnorm([ep ev ed], 2, 2));
 % normalization uses the nominal Bryson scales and nominal mg for all runs)
 tilt = acos(min(1, max(-1, o.R(:, 9))));      % R(3,3): tilt from vertical
 M.tilt_max = max(tilt);
+M.T_min = min(o.Tn(:,1));
+M.T_max = max(o.Tn(:,1));
+M.n_peak = max(abs(o.Tn(:,2:4)),[],1);
 un = [(o.Tn(:,1) - P.m*P.g)/P.lqr.dTmax, o.Tn(:,2)/P.lqr.nmax(1), ...
       o.Tn(:,3)/P.lqr.nmax(2), o.Tn(:,4)/P.lqr.nmax(3)];
 M.effort_rms = sqrt(mean(sum(un.^2, 2)));     % dimensionless normalized effort
@@ -40,7 +50,7 @@ M.n_max = max(abs(o.Tn(:, 2:4)), [], 'all');
 % --- filter consistency vs propagated P9(t) ---
 if ~isfield(o, 'P_out') || isempty(o.P_out), return; end
 t = o.t;
-sel_t = t > 5;                                % exclude the singular zero-P start
+sel_t = t > min(5,t(end)/2);                 % exclude the singular zero-P start
 seg = ones(size(t));                          % 1 good, 0 degraded, -1 no fix, 3 re-acq
 seg(o.fix <= 0.5 & o.fix > -0.5) = 0;
 seg(o.fix <= -0.5) = -1;

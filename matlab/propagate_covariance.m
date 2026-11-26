@@ -15,8 +15,9 @@ nx = mdl.nx;
 P  = zeros(nx);                       % identical initial states -> e(0) = 0
 ts = 1e3;                             % filter timer starts as "good for long"
 P9t = zeros(N, 9, 9);
-A = mdl.A;  B = mdl.B;  C = mdl.C;  Q = mdl.Q;
+A = mdl.A;  C = mdl.C;  Q = mdl.Q;
 for k = 1:N
+    P9t(k,:,:) = mdl.Tc*P*mdl.Tc';
     fix = o.fix(k);
     % L(t) and R(t): measurement noise follows the fix status, L follows the
     % filter schedule (never blend R)
@@ -40,7 +41,5 @@ for k = 1:N
         P  = P + dt/6*(k1 + 2*k2 + 2*k3 + k4);
         P  = (P + P')/2;              % symmetry against round-off
     end
-    P9 = mdl.Tc*P*mdl.Tc';
-    P9t(k,:,:) = P9;
 end
 end

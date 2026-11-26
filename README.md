@@ -1,251 +1,39 @@
-<div align="center">
+# Trajectory tracking for a quadrotor in wind
 
-# Trajectory Tracking of a Quadrotor in Wind
+A MATLAB/Simulink implementation of a 62-second inspection flight with take-off, two figure-eight laps and landing. A 16-state integral LQR uses four limited actuator-input integrators and exact Euler-angle torque mapping. A nine-state Kalman filter uses RTK GNSS and measured attitude, with separate gains for normal and degraded GNSS.
 
-**LQR Control · Kalman-Filter Navigation · RTK GNSS only**
+![Reference, true and estimated trajectory in wind](report/figs/traj3d.png)
 
-*Aerial Robotics (MSc) · Project 2026 · Prof. C. Silvestre*
+[Six-page report](report/main.pdf) | [3D animation](results/full_20261126_162018/mission_anim.mp4) | [Experiment metrics](results/full_20261126_162018/metrics.json)
 
-![MATLAB](https://img.shields.io/badge/MATLAB-R2025b-orange?logo=mathworks&logoColor=white)
-![Simulink](https://img.shields.io/badge/Simulink-R2025b-orange?logo=mathworks&logoColor=white)
-![Control](https://img.shields.io/badge/control-multivariable%20LQR-2563eb)
-![Estimation](https://img.shields.io/badge/estimation-9--state%20steady--state%20Kalman%20filter-059669)
-![Reproducible](https://img.shields.io/badge/one--click%20reproduction-main.m-f59e0b)
+## Results
 
-</div>
+| Estimated feedback | 3D tracking RMS | Peak error |
+| --- | ---: | ---: |
+| Nominal | 0.026 m | 0.067 m |
+| Wind and gusts | 0.119 m | 0.301 m |
+| Five seconds of RTK degradation | 0.174 m | 0.685 m |
 
----
+All 10 required cases met the thrust, torque and 0.61 rad tilt limits. The largest tilt was 26.8 degrees. In the bonus test with five seconds of complete GNSS loss, the recovery peak was 43.4 degrees.
 
-A quadrotor flies an inspection mission — **take-off, two figure-eight laps at 2 m, landing** —
-through a 2 m/s wind with random gusts, navigating **only** from a low-cost sensor suite:
-an AHRS + rate gyros at 200 Hz and an RTK GNSS receiver at 50 Hz whose accuracy degrades
-from ±2 cm to ±1 m whenever the RTK fix is lost. Everything is formulated in continuous
-time and implemented in Simulink; **one entry point reproduces every figure, table and the
-animation below.**
+## Run locally
 
-<div align="center">
+Use MATLAB R2025b, Simulink, Stateflow and Control System Toolbox. Place quad_arch.slx, mission_reference.m and euler_R.m from your instructor's student kit in simulink/student_kit/. Open the repository folder in MATLAB and run:
 
-<img src="docs/mission_anim.gif" alt="3-D mission animation: reference, true and estimated trajectory with covariance ellipse" width="720"/>
+    main('quick')   % Design checks and two representative cases
+    main('full')    % All experiments, report figures and the animation
 
-*Full 62 s mission, estimated-state flight, wind + gusts.
-Green ellipse: 1-σ horizontal covariance from the propagated P(t) (eig of P_xy).*
+The simulation builds the completed model at simulink/quad_arch.slx. Each invocation writes to a new folder under results/. Compile report/main.tex after a full run to rebuild the paper.
 
-</div>
+## Read the code
 
-## 🏁 Key results — estimated-state flight (frozen batch, seed 1729)
+| File | Responsibility |
+| --- | --- |
+| [main.m](main.m) | Design, model and core cases, supplementary experiments, report outputs |
+| [matlab/params.m](matlab/params.m) | Vehicle, sensor, controller and filter parameters |
+| [matlab/course_d_law.m](matlab/course_d_law.m) | Velocity-form controller and input-integrator rates |
+| [matlab/course_filter.m](matlab/course_filter.m) | Nine-state observer and GNSS mode switching |
+| [matlab/experiments/run_scenarios.m](matlab/experiments/run_scenarios.m) | Shared matrix of core cases |
+| [matlab/experiments/run_experiments.m](matlab/experiments/run_experiments.m) | Controller comparisons, bonus trials and repeatability checks |
 
-| Scenario | RMS 3-D error | Note |
-|:---------|--------------:|:--|
-| nominal | **0.029 m** | hover + two figure-eight laps |
-| wind + gusts | **0.116 m** | 2 m/s mean wind + OU gusts |
-| 5 s RTK degraded | **0.196 m** | peak error 0.951 m during the outage |
-
-**All 10 core scenarios stay inside the course tilt limit — worst case 31.6° / 35°** (thrust
-and torques within saturation). The full matrix, estimator-consistency statistics and the
-five holdout seeds are in [Results](#-results--10-run-core-matrix-seed-1729); the
-complete-GNSS-loss bonus case is reported honestly in the paper (large re-acquisition
-transient, mission recovered).
-
-## 🚀 Quick start
-
-```matlab
-% verified on MATLAB R2025b + Simulink + Control System Toolbox (R2023b+ works)
-main('quick')   % ~5 min: build + design + nominal/wind sanity runs
-main('full')    % 80.7 min measured here: every experiment behind the paper —
-                % core matrix, ρ comparison, bonus runs, holdout seeds, step-size
-                % check — regenerating every figure, the metrics export and the
-                % animation in a NEW results/<execution_id>/ batch
-```
-
-Every full run writes to a fresh `results/<execution_id>/` — nothing from a previous
-batch is overwritten, and reruns never collide (`run_id = execution_id/case_id`).
-
-## 📄 Paper
-
-The IEEE-style report (6 pages, same frozen batch): [`report/main.tex`](report/main.tex) ·
-compiled [`report/main.pdf`](report/main.pdf). Every number in the paper is auto-generated
-from `results/full_20261120_165230/metrics.json` via LaTeX macros.
-
----
-
-## ✨ Highlights
-
-- **One multivariable LQR (15 states)** on the hover linearisation of the full rigid-body
-  dynamics — position error, integral error, attitude and rates in a single design, with
-  conditional-integration **anti-windup**. Three Bryson weightings ρ = 0.1/1/10 are
-  compared on the full nonlinear mission (error vs. effort of the **applied** input).
-- **Exact Euler kinematics in the loop**: torques are computed through
-  $n = JQ^{-1}(\ddot\eta_{cmd} - \dot Q\,\omega) + \omega\times J\omega$, not the
-  $Q \approx I$ small-angle shortcut.
-- **Course nine-state Kalman filter** `[p; v; d]` as the formal baseline, with two
-  steady-state gains switched by the RTK fix status (hard switch; a 3 s soft blend and a
-  12-state two-time-scale model kept as documented extensions).
-- **Honest validation**: analytic linearisation vs numerical Jacobian (5·10⁻¹²), a
-  model-matched linear calibration of the statistics (ANEES 9.20, CI ±1.44), zero-centered
-  ±3σ bounds from the **propagated** P(t) — never error-centered — and five independent
-  holdout seeds for the key scenarios.
-
-## 🏗 System Architecture
-
-```mermaid
-flowchart LR
-    GEN["Reference<br/><b>C² mission trajectory</b><br/>p*, ṗ*, p̈*, ψ*"] --> CTL
-
-subgraph EST["Steady-state Kalman filter · 9 states (rw9)"]
-    KF["p̂, v̂, d̂ (random walk)<br/>L = Pss·CᵀR⁻¹<br/>RTK / degraded gain switching<br/>(12-state OU+bias extension available)"]
-end
-
-    subgraph CTL["LQR controller · 15 states"]
-        ERR["error states<br/>∫e, e, ė (heading frame)<br/>η̃, η̇̃"]
-        LQR["u = −Kx<br/>integral action<br/>conditional anti-windup"]
-        TQ["torque map<br/>exact Q(φ,θ)⁻¹"]
-        ERR --> LQR --> TQ
-    end
-
-    subgraph PLT["Nonlinear 6-DOF quadrotor"]
-        QUAD["m·p̈ = −T·Re₃ + m·g·e₃ + f_w<br/>Ṙ = R·S(ω) · J·ω̇ = −S(ω)Jω + n<br/>thrust / torque saturation"]
-    end
-
-    subgraph SNS["Sensors · continuous truth + BLWN(r), r = σ²/rate"]
-        AH["AHRS 200 Hz · σ = 0.5°"]
-        GY["gyros 200 Hz · σ = 0.01 rad/s"]
-        GN["RTK GNSS 50 Hz<br/>2/4 cm ↔ 0.5/1 m"]
-    end
-
-    TQ --> QUAD
-    QUAD --> AH & GY & GN
-    AH & GY & GN --> KF
-    KF -- "p̂, v̂" --> ERR
-    LQR -- "T_cmd" --> KF
-```
-
-*One wind signal (mean step at t = 15 s + OU-filtered gusts, pole −1/τ, τ = 2 s) is wired
-to **both** the plant and the log. The filter's model acceleration
-uₐ = −(T_cmd/m)·Re₃ + g·e₃ uses the **commanded** thrust and the **measured** attitude;
-the physical disturbance truth used for scoring is
-d_model = a_true − ua_ideal (wind drag + mass/actuation error), computed from the
-applied thrust and logged alongside.*
-
-## 📊 Results — 10-run core matrix (seed 1729)
-
-<!-- filled from results/full_20261120_165230/metrics.json -->
-
-| Mode | Scenario | RMS 3-D error [m] | Max 3-D error [m] | Hover offset ‖b‖ [m] | est. p/v/d RMS | Max tilt | effort U_RMS |
-|:-----|:---------|-----:|-----:|-----:|:----:|-----:|-----:|
-| ideal | nominal | 0.028 | 0.123 | 0.033 | N/A | 15.2 | 0.09 |
-| ideal | wind | 0.102 | 0.248 | 0.089 | N/A | 17.1 | 0.11 |
-| ideal | RTK degraded 5 s | 0.102 | 0.248 | 0.089 | N/A | 17.1 | 0.11 |
-| ideal | uncert. J +20% | 0.112 | 0.391 | 0.082 | N/A | 16.9 | 0.41 |
-| ideal | uncert. J −20% | 0.112 | 0.391 | 0.080 | N/A | 16.6 | 0.40 |
-| estimated | nominal | 0.029 | 0.112 | 0.027 | 0.024/0.16/0.16 | 15.4 | 0.17 |
-| estimated | wind | 0.116 | 0.266 | 0.090 | 0.024/0.16/0.31 | 17.4 | 0.18 |
-| estimated | RTK degraded 5 s | 0.196 | 0.951 | 0.090 | 0.106/0.24/0.32 | 31.6 | 0.24 |
-| estimated | uncert. J +20% | 0.141 | 0.555 | 0.082 | 0.024/0.16/0.50 | 17.0 | 0.45 |
-| estimated | uncert. J −20% | 0.141 | 0.555 | 0.078 | 0.024/0.16/0.50 | 16.5 | 0.44 |
-
-*Both uncertainty scenarios are mass +20 % with a 20 ms input delay; inertia ±20 %.
-All numbers come from the frozen batch `results/<execution_id>/metrics.json` — same
-source as the paper's table.*
-
-## 🖼 Figure Gallery
-
-<table>
-<tr>
-<td width="50%"><img src="report/figs/traj3d.png"/><br><sub>3-D + top view: reference, true and estimated trajectories</sub></td>
-<td width="50%"><img src="report/figs/rtk_outage.png"/><br><sub>Error growth during the 5 s RTK outage vs propagated covariance</sub></td>
-</tr>
-<tr>
-<td colspan="2"><img src="report/figs/mission_wind.png" width="560"/><br><sub>Wind run end-to-end: per-axis tracking error, attitude & heading, applied wind</sub></td>
-</tr>
-</table>
-
-*More in [`report/figs/`](report/figs): estimation error with ±3σ bounds, disturbance
-estimate vs truth, attitude & heading, thrust/torque commands, wind profile, position
-errors, ρ comparison, hover integral ablation, feed-forward, GNSS outages, Q comparison,
-step-size sensitivity.*
-
-## ✅ Built-in Verification
-
-Every design step carries a numerical self-check (`main('full')` and the `test_*` scripts
-assert them on every run):
-
-| Check | Result |
-|:--|:--|
-| Analytic A, B vs. numerical Jacobian of the nonlinear error dynamics | 4.9·10⁻¹² rel. |
-| Controllability rank (with / without integral states) | 15 / 12 |
-| Decoupled chains under state permutation (x-θ, y-φ, z, ψ) | 5 · 5 · 3 · 2 |
-| A − BK Hurwitz for all three ρ; A − LC Hurwitz in both fix modes | ✓ |
-| (A, C) observable: position / velocity-only (rw9) | rank 9 / 6 |
-| Wind: `none` applies exactly 0; mean step 2 m/s at t = 15 s; OU τ = 2 s | ✓ (impulse 1/e at 2.00 s + 3-seed ensemble) |
-| GNSS fix status [t₀,t₁) semantics: 1 → 0 (degraded) / −1 (no fix) → 1 | ✓ |
-| Statistics machinery: linear model-matched ensemble ANEES / coverage | 9.20 (CI ±1.44) / 99.4 % |
-| Disturbance identity a_true = ua_meas + d_model + d_input_noise | < 10⁻⁹ every run |
-| Run-to-run determinism (seeded noise streams) | bit-exact |
-
-## 📁 Repository Layout
-
-```
-├── main.m                ← thin public entry: main('full') | main('quick')
-├── matlab/
-│   ├── params.m            all vehicle / sensor / wind / mission / seed parameters
-│   ├── run_project.m       orchestration: designs, builds, flies, plots, exports
-│   ├── gen_ref.m           C² reference (mission / q_maneuver / hover_validation)
-│   ├── lin_hover.m         15-state linearisation + rank checks
-│   ├── lqr_design.m        Bryson weights, 3× ρ, standard recovery metrics
-│   ├── kf_design.m         steady-state ARE: rw9 baseline + ou_bias12 extension
-│   ├── kf_sfun.m           filter S-function (fix-status gains, nx-driven)
-│   ├── propagate_covariance.m  P(t) for the ACTUAL gain schedule (RK4)
-│   ├── quad_dynamics.m     nonlinear 6-DOF model
-│   ├── *_sfun.m            plant / controller / reference S-functions
-│   │                       (sensor_sfun.m = legacy sample-hold extension, not wired)
-│   ├── build_closed.m      builds simulink/closed_loop.slx programmatically
-│   ├── run_closed.m        one scenario run + full log contract (applied inputs, truths)
-│   ├── run_scenarios.m     the 10 core runs into results/<execution_id>/<case_id>/
-│   ├── metrics.m           one metric definition set (3-D vector RMS, d_model truth,
-│   │                       segment-wise coverage / NEES / innovations)
-│   ├── make_figures.m      every report figure from ONE batch
-│   ├── export_results.m    metrics.json + LaTeX macros + core table
-│   ├── animate_mission.m   3-D animation → mp4
-│   └── test_*.m            plant / wind / closed-loop / filter / bonus verification
-├── simulink/
-│   ├── closed_loop.slx     the complete controller–estimator loop
-│   └── plant_test.slx      open-loop plant model
-├── report/                 IEEE-style paper sources + figures + metrics macros
-├── results/                <execution_id>/<case_id>/run.mat + scenarios.mat + metrics.json
-├── docs/
-│   ├── optimization-plan/  audit register, phased plan, acceptance contract, PROGRESS.md
-│   └── autoresearch/       historical 20-run sweep archive (read-only, see HISTORY.md)
-└── tools/package_submission.py   clean deliverable ZIP packager
-```
-
-## 🧪 Standalone test scripts
-
-Individual verification, each standalone:
-
-```matlab
-test_plant    % open-loop plant checks (hover, torque response, wind drag)
-test_wind     % wind modes, OU statistics, GNSS status sequences, delay bookkeeping
-test_closed   % ideal-state closed loop, nominal + wind
-test_kf       % linear statistics calibration + per-mode tuning sweep
-test_bonus    % FF sign, hover integral ablation, Q manoeuvre, GNSS outages
-```
-
-## 📜 Tuning history (historical record)
-
-The 12-state two-time-scale filter, the soft re-acquisition blend and the
-process-noise operating points were explored in an earlier **20-run autoresearch sweep on
-the pre-fix windfield** (single dev seed). That windfield had the gust generator wired to
-the plant but **not** the mean wind, and a 0.5 s effective OU time constant — so those
-RMS numbers are **historical only** and are not comparable with the current results
-(see [docs/autoresearch/HISTORY.md](docs/autoresearch/HISTORY.md) and
-[docs/optimization-plan/PROGRESS.md](docs/optimization-plan/PROGRESS.md)).
-
-<div align="center">
-<img src="docs/tuning.png" alt="autoresearch tuning curves (historical)" width="860"/>
-</div>
-
----
-
-<div align="center">
-<sub>Built with MATLAB R2025b + Simulink · Level-2 MATLAB S-functions · fixed-step ode4 @ 1 ms · fully reproducible from main('full')</sub>
-</div>
+The earlier 15-state showcase is available at [commit 89825ee](https://github.com/HZZ2Z/Aerial-Robotics-Project/tree/89825ee9e7347e0724117587b56935179aafd386).

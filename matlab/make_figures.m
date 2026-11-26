@@ -26,8 +26,8 @@ ax2 = nexttile(tl); grid on; hold on;
 plot(wind.ref(:,1), wind.ref(:,2), 'k--', 'LineWidth', 1);
 plot(wind.p(:,1), wind.p(:,2), 'b', 'LineWidth', 1);
 plot(wind.kf(:,1), wind.kf(:,2), 'r-.', 'LineWidth', 0.8);
-quiver(wind.ref(200:800:end,1), wind.ref(200:800:end,2), ...
-       cos(wind.ref(200:800:end,10)), sin(wind.ref(200:800:end,10)), 0.3, 'k');
+quiver(wind.ref(8000:1700:52000,1), wind.ref(8000:1700:52000,2), ...
+       cos(wind.ref(8000:1700:52000,10)), sin(wind.ref(8000:1700:52000,10)), 0.3, 'k');
 xlabel('x North [m]'); ylabel('y East [m]'); axis equal;
 title('top view (arrows: heading \psi^*)');
 savepdf(f, fgs, 'traj3d');
@@ -92,13 +92,14 @@ f = figure('Color', 'w', 'Position', [50 50 430 182]);
 for k = 1:3
     subplot(3, 1, k); hold on; grid on;
     lo = -sd3(:, k); hi = sd3(:, k);      % centered at ZERO
-    fill([wind.t; flipud(wind.t)], [lo; flipud(hi)], [1 0.85 0.85], 'EdgeColor', 'none');
+    plot(wind.t,lo,'--','Color',[0.7 0.2 0.2]);
+    plot(wind.t,hi,'--','Color',[0.7 0.2 0.2]);
     plot(wind.t, ep(:, k), 'b', 'LineWidth', 0.8);
     shade_fix(gca, wind);
     ylabel(sprintf('e_{p,%c} [m]', 'x' + k - 1));
 end
 xlabel('t [s]');
-title('position estimation error, zero-centered \pm3\sigma from propagated P(t) (shaded: degraded/no fix)');
+title('Position error and propagated \pm3\sigma');
 savepdf(f, fgs, 'est_err');
 
 % --- fig 7: d-hat vs disturbance truth (d_model) and wind-drag component ---
@@ -117,15 +118,16 @@ savepdf(f, fgs, 'dhat');
 % --- fig 8: RTK outage, propagated covariance vs actual drift ---
 f = figure('Color', 'w', 'Position', [50 50 430 143]);
 hold on; grid on;
-win = ertk.t >= 19 & ertk.t <= 27;
+fixWindow = ertk.opts.fix_loss;
+win = ertk.t >= fixWindow(1)-1 & ertk.t <= fixWindow(2)+2;
 dr = vecnorm(ertk.kf(:,1:3) - ertk.p, 2, 2);
 ph = sqrt(squeeze(ertk.P_out(:,1,1)) + squeeze(ertk.P_out(:,2,2)));
 plot(ertk.t(win), dr(win), 'b', 'LineWidth', 1);
 plot(ertk.t(win), ph(win), 'r', 'LineWidth', 1);
-xline(20, ':'); xline(25, ':');
+xline(fixWindow, ':');
 xlabel('t [s]'); ylabel('[m]');
 legend('||\hat p - p||', '1\sigma propagated (P_{11}+P_{22})^{1/2}', 'Location', 'best');
-title('5 s RTK outage (t \in [20,25)): error vs propagated covariance');
+title('RTK degradation: error and propagated uncertainty');
 savepdf(f, fgs, 'rtk_outage');
 
 % --- fig 9: LQR analysis (eigenvalues, K pattern, step recovery) ---
@@ -136,21 +138,21 @@ for i = 1:numel(S.Ks)
     e = S.cl(i).eig; plot(real(e), imag(e), 'o', 'MarkerSize', 4);
 end
 xlabel('Re'); ylabel('Im'); title('eig(A - BK) for \rho = 0.1, 1, 10');
-nexttile(tl); imagesc(abs(S.Ks{3})); colorbar; colormap('gray');
-xticks([2 5 8 11 14]); xticklabels({'\int e','e','\dot e','e_t','\dot e_t'});
+nexttile(tl); imagesc(abs(S.Ks{S.selected})); colorbar; colormap('gray');
+xticks([2.5 6 9 12 15]); xticklabels({'\int e','e','\dot e','e_t','\dot e_t'});
 xtickangle(30); yticks(1:4); yticklabels({'\delta T', 'n_x', 'n_y', 'n_z'});
-title('|K|, \rho = 10');
+title(sprintf('|K|, \\rho = %g',S.P.lqr.flight_rho));
 nexttile(tl); hold on; grid on;
-st = S.cl(3).step;                                % rho = 10 flight config
+st = S.cl(S.selected).step;
 plot(st(3).t, 1 - st(3).e/st(3).e(1), st(1).t, 1 - st(1).e/st(1).e(1), ...
-     st(2).t, 1 - st(2).e/st(2).e(1), 'LineWidth', 0.9);
-legend('z', 'x', 'y', 'Location', 'southeast');
-xlabel('t [s]'); ylabel('y = 1 - e/e_0'); title('recovery from 1 m step, \rho = 10');
+     st(2).t, 1 - st(2).e/st(2).e(1), st(4).t, 1 - st(4).e/st(4).e(1), 'LineWidth', 0.9);
+legend('z', 'x', 'y', '\psi', 'Location', 'southeast');
+xlabel('t [s]'); ylabel('y = 1 - e/e_0'); title('Normalised step recovery');
 savepdf(f, fgs, 'lqr');
 
 % --- fig 10: rho comparison, error vs effort (actual applied input) ---
 f = figure('Color', 'w', 'Position', [50 50 430 197]);
-hold on; grid on; xlim([0 0.13]);
+hold on; grid on;
 mk = {'o', 's', '^'};
 dy = 0.010;                                   % stagger labels of near-coincident points
 for r = 1:3
@@ -209,10 +211,10 @@ for w = [1 5]
     plot(ax2, o.t, tilt, 'LineWidth', 1, 'DisplayName', label);
 end
 for ax = [ax1 ax2]
-    xline(ax, [20 21 25], ':', 'HandleVisibility', 'off');
-    xlim(ax, [19.5 S.nf.s5.t(end)]);
+    xline(ax, S.P.mis.fix_loss(1)+[0 1 5], ':', 'HandleVisibility', 'off');
+    xlim(ax, [S.P.mis.fix_loss(1)-0.5 S.nf.s5.t(end)]);
 end
-yline(ax2, S.P.tiltmax*180/pi, '--', '35 deg limit', 'HandleVisibility', 'off');
+yline(ax2, S.P.tiltmax*180/pi, '--', '0.61 rad limit', 'HandleVisibility', 'off');
 xlabel(ax2, 't [s]'); ylabel(ax2, 'tilt [deg]');
 ylabel(ax1, '$\Vert\hat{p} - p\Vert$ [m]', 'Interpreter', 'latex');
 legend(ax1, 'Location', 'best');
@@ -251,13 +253,14 @@ if ~any(d), return; end
 edges = find([~d(1); diff(d)] | [diff(d); ~d(end)]);  % run boundaries
 for k = 1:2:numel(edges)-1
     tt = o.t(edges([k k+1]));
-    patch(ax, [tt(1) tt(1) tt(2) tt(2)], [-10 -10 10 10], ...
+    yl = ylim(ax);
+    patch(ax, [tt(1) tt(1) tt(2) tt(2)], yl([1 2 2 1]), ...
         [0.85 0.85 1], 'EdgeColor', 'none', 'FaceAlpha', 0.35);
 end
 end
 
 function savepdf(f, dir, name)
-exportgraphics(f, fullfile(dir, [name '.pdf']), 'ContentType', 'vector');
-saveas(f, fullfile(dir, [name '.png']));
+exportgraphics(f, fullfile(dir, [name '.pdf']), 'ContentType', 'image', 'Resolution', 260);
+exportgraphics(f, fullfile(dir, [name '.png']), 'Resolution', 220);
 close(f);
 end
